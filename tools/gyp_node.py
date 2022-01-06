@@ -45,6 +45,7 @@ def run_gyp(args):
   args.append('-Dcomponent=static_library')
   args.append('-Dlibrary=static_library')
 
+  # JAMLEE: 在开始这里运行 gyp 
   rc = gyp.main(args)
   if rc != 0:
     print('Error running GYP')

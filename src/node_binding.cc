@@ -242,6 +242,8 @@ using v8::Object;
 using v8::String;
 using v8::Value;
 
+// modlist_internal 内部的模块列表 C++
+// modlist_linked   原生的模块列表 JS
 // Globals per process
 static node_module* modlist_internal;
 static node_module* modlist_linked;
@@ -250,6 +252,7 @@ static thread_local node_module* thread_local_modpending;
 // This is set by node::Init() which is used by embedders
 bool node_is_initialized = false;
 
+// node_module->nm_link 指向全局变量。
 extern "C" void node_module_register(void* m) {
   struct node_module* mp = reinterpret_cast<struct node_module*>(m);
 
@@ -653,6 +656,7 @@ void GetLinkedBinding(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(effective_exports);
 }
 
+// 宏函数，调用内部的 _register_<module name> 函数，例如 _register_events
 // Call built-in modules' _register_<module name> function to
 // do module registration explicitly.
 void RegisterBuiltinModules() {

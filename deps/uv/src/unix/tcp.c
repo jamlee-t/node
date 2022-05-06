@@ -263,7 +263,7 @@ int uv__tcp_connect(uv_connect_t* req,
   return 0;
 }
 
-
+// 建立连接后得到 accepct fd，用流将其打开。
 int uv_tcp_open(uv_tcp_t* handle, uv_os_sock_t sock) {
   int err;
 
@@ -356,11 +356,11 @@ int uv_tcp_listen(uv_tcp_t* tcp, int backlog, uv_connection_cb cb) {
   if (listen(tcp->io_watcher.fd, backlog))
     return UV__ERR(errno);
 
-  tcp->connection_cb = cb;
+  tcp->connection_cb = cb; // accept 之后调用的回调函数。在这个 cb 里面实现读取 accepted_fd 的能力（也就是封装1个新stream，代表1个连接）
   tcp->flags |= UV_HANDLE_BOUND;
 
   /* Start listening for connections. */
-  tcp->io_watcher.cb = uv__server_io;
+  tcp->io_watcher.cb = uv__server_io; // 当 listen socket 触发事件时，调用 uv__server_io
   uv__io_start(tcp->loop, &tcp->io_watcher, POLLIN);
 
   return 0;

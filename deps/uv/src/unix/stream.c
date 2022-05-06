@@ -81,7 +81,7 @@ static void uv__stream_io(uv_loop_t* loop, uv__io_t* w, unsigned int events);
 static void uv__write_callbacks(uv_stream_t* stream);
 static size_t uv__write_req_size(uv_write_t* req);
 
-
+// 初始化流，uv_tcp_init 时会调用这个函数。
 void uv__stream_init(uv_loop_t* loop,
                      uv_stream_t* stream,
                      uv_handle_type type) {
@@ -402,7 +402,10 @@ failed_malloc:
 }
 #endif /* defined(__APPLE__) */
 
-
+// 打开流，例如 tcp accept 到 1 个 fd 时，可以调用本函数，打开这个 fd。其实就是设置当前本 stream 的 io_watcher.fd
+// stream 的实例场景
+// 1. listen 时，会得到 1 个 fd，包装为 stream。
+// 2. accept 时，会得到 1 个 fd，包装为 stream。
 int uv__stream_open(uv_stream_t* stream, int fd, int flags) {
 #if defined(__APPLE__)
   int enable;
@@ -524,7 +527,7 @@ static int uv__emfile_trick(uv_loop_t* loop, int accept_fd) {
 # define UV_DEC_BACKLOG(w) /* no-op */
 #endif /* defined(UV_HAVE_KQUEUE) */
 
-
+// 负责设置当前的 stream 的 accepted_fd。这里调用的是 uv__accept（注意不是 uv_accept, 这个很假里面就是打开流）
 void uv__server_io(uv_loop_t* loop, uv__io_t* w, unsigned int events) {
   uv_stream_t* stream;
   int err;
@@ -1108,6 +1111,7 @@ static int uv__stream_recv_cmsg(uv_stream_t* stream, struct msghdr* msg) {
 # pragma clang diagnostic ignored "-Wvla-extension"
 #endif
 
+// stream 来数据时，uv__stream_io -> uv__read 
 static void uv__read(uv_stream_t* stream) {
   uv_buf_t buf;
   ssize_t nread;
@@ -1282,7 +1286,7 @@ int uv_shutdown(uv_shutdown_t* req, uv_stream_t* stream, uv_shutdown_cb cb) {
   return 0;
 }
 
-
+// tcp client 时，stream 的回调是这个函数
 static void uv__stream_io(uv_loop_t* loop, uv__io_t* w, unsigned int events) {
   uv_stream_t* stream;
 
@@ -1301,7 +1305,7 @@ static void uv__stream_io(uv_loop_t* loop, uv__io_t* w, unsigned int events) {
   assert(uv__stream_fd(stream) >= 0);
 
   /* Ignore POLLHUP here. Even if it's set, there may still be data to read. */
-  if (events & (POLLIN | POLLERR | POLLHUP))
+  if (events & (POLLIN | POLLERR | POLLHUP)) // 可读的数据
     uv__read(stream);
 
   if (uv__stream_fd(stream) == -1)
@@ -1550,7 +1554,7 @@ int uv_try_write(uv_stream_t* stream,
     return written;
 }
 
-
+// 调用 uv_read_start 读取数据。这里会启动 stream->io_watcher。tcp client 类型 stream io_watcher 的
 int uv_read_start(uv_stream_t* stream,
                   uv_alloc_cb alloc_cb,
                   uv_read_cb read_cb) {
@@ -1654,11 +1658,12 @@ void uv__stream_close(uv_stream_t* handle) {
   }
 #endif /* defined(__APPLE__) */
 
-  uv__io_close(handle->loop, &handle->io_watcher);
+  uv__io_close(handle->loop, &handle->io_watcher); // 从 io watcher 中移除
   uv_read_stop(handle);
   uv__handle_stop(handle);
   handle->flags &= ~(UV_HANDLE_READABLE | UV_HANDLE_WRITABLE);
 
+  // 关闭 fd
   if (handle->io_watcher.fd != -1) {
     /* Don't close stdio file descriptors.  Nothing good comes from it. */
     if (handle->io_watcher.fd > STDERR_FILENO)

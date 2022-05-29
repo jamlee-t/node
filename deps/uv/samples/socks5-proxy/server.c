@@ -58,7 +58,7 @@ int server_run(const server_config *cf, uv_loop_t *loop) {
 
   err = uv_getaddrinfo(loop,
                        &state.getaddrinfo_req,
-                       do_bind,
+                       do_bind, // 获取地址后调用 do_bind
                        cf->bind_host,
                        NULL,
                        &hints);
@@ -98,6 +98,7 @@ static void do_bind(uv_getaddrinfo_t *req, int status, struct addrinfo *addrs) {
     struct sockaddr_in6 addr6;
   } s;
 
+  // 获取到 state 的位置
   state = CONTAINER_OF(req, server_state, getaddrinfo_req);
   loop = state->loop;
   cf = &state->config;
@@ -124,6 +125,7 @@ static void do_bind(uv_getaddrinfo_t *req, int status, struct addrinfo *addrs) {
     return;
   }
 
+  // server 分配地址空间
   state->servers =
       xmalloc((ipv4_naddrs + ipv6_naddrs) * sizeof(state->servers[0]));
 
@@ -152,6 +154,8 @@ static void do_bind(uv_getaddrinfo_t *req, int status, struct addrinfo *addrs) {
     sx = state->servers + n;
     sx->loop = loop;
     sx->idle_timeout = state->config.idle_timeout;
+
+    // 初始化 tcp_handle。也就是 uv_tcp_t 类型
     CHECK(0 == uv_tcp_init(loop, &sx->tcp_handle));
 
     what = "uv_tcp_bind";
@@ -181,6 +185,7 @@ static void do_bind(uv_getaddrinfo_t *req, int status, struct addrinfo *addrs) {
   uv_freeaddrinfo(addrs);
 }
 
+// 可以获取到已经 accept 的 fd
 static void on_connection(uv_stream_t *server, int status) {
   server_ctx *sx;
   client_ctx *cx;
@@ -188,6 +193,7 @@ static void on_connection(uv_stream_t *server, int status) {
   CHECK(status == 0);
   sx = CONTAINER_OF(server, server_ctx, tcp_handle);
   cx = xmalloc(sizeof(*cx));
+  // 初始化新的 client
   CHECK(0 == uv_tcp_init(sx->loop, &cx->incoming.handle.tcp));
   CHECK(0 == uv_accept(server, &cx->incoming.handle.stream));
   client_finish_init(sx, cx);

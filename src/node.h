@@ -516,14 +516,15 @@ enum ModuleFlags {
   kLinked = 0x02
 };
 
+// node 模块结构体表示
 struct node_module {
-  int nm_version;
+  int nm_version;  // node_module 的定义版本
   unsigned int nm_flags;
   void* nm_dso_handle;
   const char* nm_filename;
   node::addon_register_func nm_register_func;
   node::addon_context_register_func nm_context_register_func;
-  const char* nm_modname;
+  const char* nm_modname; // 模块名
   void* nm_priv;
   struct node_module* nm_link;
 };
@@ -555,6 +556,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
   NODE_CTOR_PREFIX void fn(void)
 #endif
 
+// 快速生成 node_module 结构体。以及1个注册函数。最终会调用 node_module_register
 #define NODE_MODULE_X(modname, regfunc, priv, flags)                  \
   extern "C" {                                                        \
     static node::node_module _module =                                \
@@ -593,6 +595,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
     }                                                                 \
   }
 
+// 快速定义内部模块结构。自带 1 个注册模块方法
 // Usage: `NODE_MODULE(NODE_GYP_MODULE_NAME, InitializerFunction)`
 // If no NODE_MODULE is declared, Node.js looks for the well-known
 // symbol `node_register_module_v${NODE_MODULE_VERSION}`.
@@ -603,6 +606,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
   /* NOLINTNEXTLINE (readability/null_usage) */                       \
   NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, 0)
 
+// 同NODE_MODULE，注册 LINKED 类型的模块。
 // Embedders can use this type of binding for statically linked native bindings.
 // It is used the same way addon bindings are used, except that linked bindings
 // can be accessed through `process._linkedBinding(modname)`.

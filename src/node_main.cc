@@ -123,6 +123,8 @@ int main(int argc, char* argv[]) {
   // calls elsewhere in the program (e.g., any logging from V8.)
   setvbuf(stdout, nullptr, _IONBF, 0);
   setvbuf(stderr, nullptr, _IONBF, 0);
+
+  // 程序启动入口
   return node::Start(argc, argv);
 }
 #endif

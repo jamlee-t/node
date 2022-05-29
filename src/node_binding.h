@@ -26,6 +26,7 @@ static_assert(static_cast<int>(NM_F_LINKED) ==
               static_cast<int>(node::ModuleFlags::kLinked),
               "NM_F_LINKED != node::ModuleFlags::kLinked");
 
+// 注册内部 C++ 模块
 #define NODE_MODULE_CONTEXT_AWARE_CPP(modname, regfunc, priv, flags)           \
   static node::node_module _module = {                                         \
       NODE_MODULE_VERSION,                                                     \
@@ -46,6 +47,7 @@ void napi_module_register_by_symbol(v8::Local<v8::Object> exports,
 
 namespace node {
 
+// 注册内部 C++ 模块
 #define NODE_MODULE_CONTEXT_AWARE_INTERNAL(modname, regfunc)                   \
   NODE_MODULE_CONTEXT_AWARE_CPP(modname, regfunc, nullptr, NM_F_INTERNAL)
 

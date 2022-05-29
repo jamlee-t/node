@@ -494,7 +494,7 @@ static struct {
 } stdio[1 + STDERR_FILENO];
 #endif  // __POSIX__
 
-
+// 初始化 v8 platfrom
 inline void PlatformInit() {
 #ifdef __POSIX__
 #if HAVE_INSPECTOR
@@ -728,6 +728,7 @@ int ProcessGlobalArgs(std::vector<std::string>* args,
 
 static std::atomic_bool init_called{false};
 
+// 参数初始化 node
 int InitializeNodeWithArgs(std::vector<std::string>* argv,
                            std::vector<std::string>* exec_argv,
                            std::vector<std::string>* errors) {
@@ -737,6 +738,7 @@ int InitializeNodeWithArgs(std::vector<std::string>* argv,
   // Initialize node_start_time to get relative uptime.
   per_process::node_start_time = uv_hrtime();
 
+  // 这里注册模块是指注册 internal 模块
   // Register built-in modules
   binding::RegisterBuiltinModules();
 
@@ -906,8 +908,11 @@ void Init(int* argc,
     argv[i] = strdup(argv_[i].c_str());
 }
 
+// 启动时执行 Node 环境初始化
 InitializationResult InitializeOncePerProcess(int argc, char** argv) {
   atexit(ResetStdio);
+
+  // 进程的信号设置等初始化工作
   PlatformInit();
 
   CHECK_GT(argc, 0);
@@ -929,6 +934,7 @@ InitializationResult InitializeOncePerProcess(int argc, char** argv) {
 
   // This needs to run *before* V8::Initialize().
   {
+    // 根据命令参数初始化 node
     result.exit_code =
         InitializeNodeWithArgs(&(result.args), &(result.exec_args), &errors);
     for (const std::string& error : errors)
@@ -987,7 +993,9 @@ void TearDownOncePerProcess() {
   per_process::v8_platform.Dispose();
 }
 
+// JAMLEE: Nodejs 启动入口
 int Start(int argc, char** argv) {
+  // 初始化包含了 1. v8 初始化 2. 内部模块注册
   InitializationResult result = InitializeOncePerProcess(argc, argv);
   if (result.early_return) {
     return result.exit_code;

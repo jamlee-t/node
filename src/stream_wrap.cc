@@ -193,7 +193,8 @@ bool LibuvStreamWrap::IsIPCPipe() {
   return is_named_pipe_ipc();
 }
 
-
+// JAMLEE: stream 对应js中定义的 stream 类。
+// uv_read_start(uv_stream_t* stream,uv_alloc_cb alloc_cb, uv_read_cb read_cb) 
 int LibuvStreamWrap::ReadStart() {
   return uv_read_start(stream(), [](uv_handle_t* handle,
                                     size_t suggested_size,

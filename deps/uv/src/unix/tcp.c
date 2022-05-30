@@ -263,7 +263,7 @@ int uv__tcp_connect(uv_connect_t* req,
   return 0;
 }
 
-// 建立连接后得到 accepct fd，用流将其打开。
+// JAMLEE: 打开 1 个 uv_tcp_t，它是 1 个 handle。
 int uv_tcp_open(uv_tcp_t* handle, uv_os_sock_t sock) {
   int err;
 

@@ -205,6 +205,7 @@ void TCPWrap::SetSimultaneousAccepts(const FunctionCallbackInfo<Value>& args) {
 #endif
 
 
+// JAMLEE: 调用 uv_tcp_open 函数。意思是打开这个 stream。
 void TCPWrap::Open(const FunctionCallbackInfo<Value>& args) {
   TCPWrap* wrap;
   ASSIGN_OR_RETURN_UNWRAP(&wrap,

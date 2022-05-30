@@ -81,7 +81,7 @@ static void uv__stream_io(uv_loop_t* loop, uv__io_t* w, unsigned int events);
 static void uv__write_callbacks(uv_stream_t* stream);
 static size_t uv__write_req_size(uv_write_t* req);
 
-// 初始化流，uv_tcp_init 时会调用这个函数。
+// 初始化流，uv_tcp_init 时会调用这个函数。tcp 和 stream 强绑定的。
 void uv__stream_init(uv_loop_t* loop,
                      uv_stream_t* stream,
                      uv_handle_type type) {

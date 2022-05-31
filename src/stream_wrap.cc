@@ -317,6 +317,7 @@ ShutdownWrap* LibuvStreamWrap::CreateShutdownWrap(Local<Object> object) {
   return new LibuvShutdownWrap(this, object);
 }
 
+// JAMLEE: 在 js 层面定义 1 个写入请求。
 WriteWrap* LibuvStreamWrap::CreateWriteWrap(Local<Object> object) {
   return new LibuvWriteWrap(this, object);
 }

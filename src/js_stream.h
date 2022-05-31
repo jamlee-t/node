@@ -11,6 +11,7 @@ namespace node {
 
 class Environment;
 
+// JAMLEE: 继承自 C++ stream。用于实现 JSStreamSocket。
 class JSStream : public AsyncWrap, public StreamBase {
  public:
   static void Initialize(v8::Local<v8::Object> target,

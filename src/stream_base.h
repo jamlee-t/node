@@ -27,6 +27,7 @@ struct StreamWriteResult {
 
 using JSMethodFunction = void(const v8::FunctionCallbackInfo<v8::Value>& args);
 
+// JAMLEE: 对应 libuv 中的 req。
 class StreamReq {
  public:
   static constexpr int kStreamReqField = 1;
@@ -63,6 +64,7 @@ class StreamReq {
   StreamBase* const stream_;
 };
 
+// JAMLEE: 在 js 层面定义 1 个 shutdown 请求，关闭libuv中的流。
 class ShutdownWrap : public StreamReq {
  public:
   ShutdownWrap(StreamBase* stream,
@@ -73,6 +75,7 @@ class ShutdownWrap : public StreamReq {
   void OnDone(int status) override;
 };
 
+// JAMLEE: 在 js 层面定义 1 个写入请求。
 class WriteWrap : public StreamReq {
  public:
   void SetAllocatedStorage(AllocatedBuffer&& storage);
@@ -88,7 +91,7 @@ class WriteWrap : public StreamReq {
   AllocatedBuffer storage_;
 };
 
-
+// JAMLEE: 抽象类, 定义 C++ streams。
 // This is the generic interface for objects that control Node.js' C++ streams.
 // For example, the default `EmitToJSStreamListener` emits a stream's data
 // as Buffers in JS, or `TLSWrap` reads and decrypts data from a stream.
@@ -159,6 +162,7 @@ class StreamListener {
 };
 
 
+// JAMLEE: libuv 在写入数据后，需要继续调用的回调方法。
 // An (incomplete) stream listener class that calls the `.oncomplete()`
 // method of the JS objects associated with the wrap objects.
 class ReportWritesToJSStreamListener : public StreamListener {
@@ -171,6 +175,7 @@ class ReportWritesToJSStreamListener : public StreamListener {
 };
 
 
+// JAMLEE: libuv 有数据可以读了，通知到 nodejs 的 stream 中。
 // A default emitter that just pushes data chunks as Buffer instances to
 // JS land via the handle’s .ondata method.
 class EmitToJSStreamListener : public ReportWritesToJSStreamListener {
@@ -195,6 +200,7 @@ class CustomBufferJSListener : public ReportWritesToJSStreamListener {
 };
 
 
+// JAMLEE: C++ stream 对象。
 // A generic stream, comparable to JS land’s `Duplex` streams.
 // A stream is always controlled through one `StreamListener` instance.
 class StreamResource {
@@ -272,7 +278,7 @@ class StreamResource {
   friend class StreamListener;
 };
 
-
+// JAMLEE: StreamBase 定义 C++ Stream 的基础类。
 class StreamBase : public StreamResource {
  public:
   // 0 is reserved for the BaseObject pointer.
@@ -398,6 +404,7 @@ class SimpleShutdownWrap : public ShutdownWrap, public OtherBase {
   SET_SELF_SIZE(SimpleShutdownWrap)
 };
 
+// JAMLEE: 包装 stream write 类。
 template <typename OtherBase>
 class SimpleWriteWrap : public WriteWrap, public OtherBase {
  public:

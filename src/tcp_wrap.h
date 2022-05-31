@@ -31,6 +31,9 @@ namespace node {
 
 class Environment;
 
+// JAMLEE: TCPWrap 是在 C++ 层面定义的TCP流。这里的流起到承上启下的作用，承上上接 nodejs 实现的 stream 类。
+// 启下对接 uv_tcp_t 的数据读取。
+// 继承链 ConnectionWrap->LibuvStreamWrap->(HandleWrap->AsyncWrap->BaseObject->MemoryRetainer, StreamBase->StreamResource)。
 class TCPWrap : public ConnectionWrap<TCPWrap, uv_tcp_t> {
  public:
   enum SocketType {

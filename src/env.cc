@@ -676,7 +676,7 @@ void Environment::RunAndClearNativeImmediates() {
   immediate_info()->ref_count_dec(ref_count);
 }
 
-
+// JAMLEE: js 传递过来的定时秒数，会在这里设置到 loop 中
 void Environment::ScheduleTimer(int64_t duration_ms) {
   if (started_cleanup_) return;
   uv_timer_start(timer_handle(), RunTimers, duration_ms, 0);

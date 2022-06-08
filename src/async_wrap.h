@@ -98,6 +98,7 @@ namespace node {
 class Environment;
 class DestroyParam;
 
+// JAMLEE: 每个 async scope 有 1 个 id: async_id。
 class AsyncWrap : public BaseObject {
  public:
   enum ProviderType {
@@ -200,6 +201,7 @@ class AsyncWrap : public BaseObject {
   static v8::Local<v8::Object> GetOwner(Environment* env,
                                         v8::Local<v8::Object> obj);
 
+  // JAMLEE: 代表 1 个 AsyncScope。
   // This is a simplified version of InternalCallbackScope that only runs
   // the `before` and `after` hooks. Only use it when not actually calling
   // back into JS; otherwise, use InternalCallbackScope.

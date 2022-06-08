@@ -293,12 +293,14 @@ inline void Environment::AssignToContext(v8::Local<v8::Context> context,
 #endif  // HAVE_INSPECTOR
 }
 
+// JAMLEE: 从 isolate 中获取 env
 inline Environment* Environment::GetCurrent(v8::Isolate* isolate) {
   if (UNLIKELY(!isolate->InContext())) return nullptr;
   v8::HandleScope handle_scope(isolate);
-  return GetCurrent(isolate->GetCurrentContext());
+  return GetCurrent(isolate->GetCurrentContext()); // 转到 Environment::GetCurrent(v8::Local<v8::Context> context)
 }
 
+// JAMLEE: 最常规的在 Context 中获取 env
 inline Environment* Environment::GetCurrent(v8::Local<v8::Context> context) {
   if (UNLIKELY(context.IsEmpty())) {
     return nullptr;
@@ -317,9 +319,12 @@ inline Environment* Environment::GetCurrent(v8::Local<v8::Context> context) {
           ContextEmbedderIndex::kEnvironment));
 }
 
+// JAMLEE: 从 FunctionCallbackInfo 中读取。
+// FunctionCallbackInfo: The argument information given to function call callbacks. This class provides access to information about the context of the call, including the receiver, the number and values of arguments, and the holder of the function.
+// https://v8docs.nodesource.com/node-4.8/dd/d0d/classv8_1_1_function_callback_info.html
 inline Environment* Environment::GetCurrent(
     const v8::FunctionCallbackInfo<v8::Value>& info) {
-  return GetFromCallbackData(info.Data());
+  return GetFromCallbackData(info.Data()); // 转到
 }
 
 template <typename T>
@@ -408,6 +413,7 @@ void Environment::DecreaseWaitingRequestCounter() {
   CHECK_GE(request_waiting_, 0);
 }
 
+// JAMLEE: 获取 event_loop
 inline uv_loop_t* Environment::event_loop() const {
   return isolate_data()->event_loop();
 }

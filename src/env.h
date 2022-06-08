@@ -634,6 +634,7 @@ namespace per_process {
 extern std::shared_ptr<KVStore> system_environment;
 }
 
+// JAMLEE: AsyncHooks 和 AsyncWrap 关系密切
 class AsyncHooks : public MemoryRetainer {
  public:
   SET_MEMORY_INFO_NAME(AsyncHooks)

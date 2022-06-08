@@ -257,6 +257,9 @@ int Environment::InitializeInspector(
 #endif  // HAVE_INSPECTOR && NODE_USE_V8_PLATFORM
 
 void Environment::InitializeDiagnostics() {
+  // JAMLEE: 添加到 HeapProfiler
+  // void AddBuildEmbedderGraphCallback	(BuildEmbedderGraphCallback callback, void * data)
+  // https://v8docs.nodesource.com/node-12.19/d7/d76/classv8_1_1_heap_profiler.html#ae72179b5e58f4f1201961b86cd220083
   isolate_->GetHeapProfiler()->AddBuildEmbedderGraphCallback(
       Environment::BuildEmbedderGraph, this);
 

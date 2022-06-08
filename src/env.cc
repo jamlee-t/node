@@ -960,6 +960,7 @@ void MemoryTracker::TrackField(const char* edge_name,
   PopNode();
 }
 
+// JAMLEE: 静态方法。新建变量 tracker，然后从 env 开始 track。
 void Environment::BuildEmbedderGraph(Isolate* isolate,
                                      EmbedderGraph* graph,
                                      void* data) {
@@ -981,6 +982,7 @@ inline size_t Environment::SelfSize() const {
   return size;
 }
 
+// JAMLEE: 调用路径 InitializeDiagnostics->BuildEmbedderGraph->MemoryInfo
 void Environment::MemoryInfo(MemoryTracker* tracker) const {
   // Iteratable STLs have their own sizes subtracted from the parent
   // by default.
@@ -1002,6 +1004,10 @@ void Environment::MemoryInfo(MemoryTracker* tracker) const {
   tracker->TrackField("immediate_info", immediate_info_);
   tracker->TrackField("tick_info", tick_info_);
 
+  // JAMLEE: 展开例如：
+  // tracker->TrackField("url_constructor_function", url_constructor_function());
+  // "#" 的功能是将其后面的宏参数进行字符串化操作（Stringfication），简单说就是在对它所引用的宏变量，
+  // 通过替换后在其左右各加上一个双引号。
 #define V(PropertyName, TypeName)                                              \
   tracker->TrackField(#PropertyName, PropertyName());
   ENVIRONMENT_STRONG_PERSISTENT_VALUES(V)

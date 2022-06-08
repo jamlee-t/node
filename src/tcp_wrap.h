@@ -49,8 +49,13 @@ class TCPWrap : public ConnectionWrap<TCPWrap, uv_tcp_t> {
                          v8::Local<v8::Context> context,
                          void* priv);
 
+  
+  // JAMLEE: 这个很重要。继承自 MemoryRetainer。有个纯虚函数必须要实现
   SET_NO_MEMORY_INFO()
+
   SET_SELF_SIZE(TCPWrap)
+
+  // JAMLEE: 当前 TCP 可以表示为 tcp server，或者 socket。继承自 MemoryRetainer
   std::string MemoryInfoName() const override {
     switch (provider_type()) {
       case ProviderType::PROVIDER_TCPWRAP:

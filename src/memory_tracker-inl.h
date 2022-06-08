@@ -19,8 +19,20 @@ inline const char* GetNodeName(const char* node_name, const char* edge_name) {
   return "";
 }
 
+////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: 实现 MemoryRetainerNode 类的真实方法
+//
+////////////////////////////////////////////////////////////////////
+// 在 v8 之外的对象也可以被 heapshot 收集。
+// 1) Define derived class of EmbedderGraph::Node for embedder objects.
+// 2) Set the build embedder graph callback on the heap profiler using HeapProfiler::AddBuildEmbedderGraphCallback. 
+// 3) In the callback use graph->AddEdge(node1, node2) to add an edge from node1 to node2.
+// 4) To represent references from/to V8 object, construct V8 nodes using graph->V8Node(value).
+// https://v8docs.nodesource.com/node-12.19/d3/d38/classv8_1_1_embedder_graph.html
 class MemoryRetainerNode : public v8::EmbedderGraph::Node {
  public:
+  // JAMLEE: 创建1个节点 Node。
   inline MemoryRetainerNode(MemoryTracker* tracker,
                                      const MemoryRetainer* retainer)
       : retainer_(retainer) {
@@ -44,7 +56,10 @@ class MemoryRetainerNode : public v8::EmbedderGraph::Node {
   }
 
   const char* Name() override { return name_.c_str(); }
+
+  // JAMLEE: 在 devtool 中能够看到这个
   const char* NamePrefix() override { return "Node /"; }
+  
   size_t SizeInBytes() override { return size_; }
   // TODO(addaleax): Merging this with the "official" WrapperNode() method
   // seems to lose accuracy, e.g. SizeInBytes() is disregarded.
@@ -75,6 +90,11 @@ class MemoryRetainerNode : public v8::EmbedderGraph::Node {
   size_t size_ = 0;
 };
 
+////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: 实现 MemoryTracker 类的真实方法
+//
+////////////////////////////////////////////////////////////////////
 void MemoryTracker::TrackFieldWithSize(const char* edge_name,
                                        size_t size,
                                        const char* node_name) {
@@ -231,6 +251,7 @@ void MemoryTracker::TrackField(const char* name,
   TrackField(name, value.GetJSArray(), "AliasedBuffer");
 }
 
+// JAMLEE： 从 Env::BuildEmbedderGraph 中被调用
 void MemoryTracker::Track(const MemoryRetainer* retainer,
                           const char* edge_name) {
   v8::HandleScope handle_scope(isolate_);

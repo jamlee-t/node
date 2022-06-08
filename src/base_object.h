@@ -32,6 +32,9 @@ namespace node {
 
 class Environment;
 
+// JAMLEE: 
+// 1. BaseObject 是 js 与 libuv 等库之间的桥梁。对象的函数参数很多都是 v8 里面的对象。
+// 2. BaseObject 是 node 定义的，没有继承v8的任何对象。
 class BaseObject : public MemoryRetainer {
  public:
   // Associates this object with `object`. It uses the 0th internal field for
@@ -41,6 +44,7 @@ class BaseObject : public MemoryRetainer {
 
   BaseObject() = delete;
 
+  // JAMLEE: wrapped object 也就是 v8 对象。所以当前这个 BaseObject 的子类对象应该叫做 unwraped object
   // Returns the wrapped object.  Returns an empty handle when
   // persistent.IsEmpty() is true.
   inline v8::Local<v8::Object> object() const;

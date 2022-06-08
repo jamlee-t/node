@@ -1187,6 +1187,7 @@ void AsyncRequest::set_stopped(bool flag) {
 #undef VY
 #undef VP
 
+// JAMLEE: 定义 1 个 inline 的函数。函数名是 PropertyName
 #define V(PropertyName, TypeName)                                             \
   inline v8::Local<TypeName> Environment::PropertyName() const {              \
     return PersistentToLocal::Strong(PropertyName ## _);                      \

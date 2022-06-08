@@ -762,6 +762,7 @@ MaybeLocal<Value> AsyncWrap::MakeCallback(const Local<Function> cb,
   return ret;
 }
 
+// JAMLEE: 重写 MemoryRetainer 方法。
 std::string AsyncWrap::MemoryInfoName() const {
   return provider_names[provider_type()];
 }

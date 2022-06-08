@@ -19,6 +19,7 @@ using v8::Object;
 using v8::Value;
 
 
+// JAMLEE: WrapType 例如 TCPWrap
 template <typename WrapType, typename UVType>
 ConnectionWrap<WrapType, UVType>::ConnectionWrap(Environment* env,
                                                  Local<Object> object,
@@ -49,6 +50,7 @@ void ConnectionWrap<WrapType, UVType>::OnConnection(uv_stream_t* handle,
   if (status == 0) {
     // Instantiate the client javascript object and handle.
     Local<Object> client_obj;
+    // JAMLEE: TCPWrap::Initialize
     if (!WrapType::Instantiate(env, wrap_data, WrapType::SOCKET)
              .ToLocal(&client_obj))
       return;

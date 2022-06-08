@@ -191,6 +191,8 @@ class AsyncWrap : public BaseObject {
       v8::Local<v8::Value>* argv);
 
   virtual std::string diagnostic_name() const;
+
+  // JAMLEE: 重写 MemoryRetainer 的 MemoryInfoName 纯虚函数。
   std::string MemoryInfoName() const override;
 
   static void WeakCallback(const v8::WeakCallbackInfo<DestroyParam> &info);

@@ -72,11 +72,14 @@ void TCPWrap::Initialize(Local<Object> target,
                          Local<Value> unused,
                          Local<Context> context,
                          void* priv) {
+  // JAMLEE: 从 context 中获取 env，这是 Environment::GetCurrent 的 static 函数
   Environment* env = Environment::GetCurrent(context);
 
+  // 创建函数模板 t
   Local<FunctionTemplate> t = env->NewFunctionTemplate(New);
   Local<String> tcpString = FIXED_ONE_BYTE_STRING(env->isolate(), "TCP");
   t->SetClassName(tcpString);
+  // 设置 t 的实例末班
   t->InstanceTemplate()
     ->SetInternalFieldCount(StreamBase::kStreamBaseFieldCount);
 
@@ -86,6 +89,7 @@ void TCPWrap::Initialize(Local<Object> target,
   t->InstanceTemplate()->Set(env->owner_symbol(), Null(env->isolate()));
   t->InstanceTemplate()->Set(env->onconnection_string(), Null(env->isolate()));
 
+  // t 继承 1 个函数模板
   t->Inherit(LibuvStreamWrap::GetConstructorTemplate(env));
 
   env->SetProtoMethod(t, "open", Open);
@@ -132,6 +136,7 @@ void TCPWrap::Initialize(Local<Object> target,
 }
 
 
+// JAMLEE: 静态方法，创建 TCPWrap
 void TCPWrap::New(const FunctionCallbackInfo<Value>& args) {
   // This constructor should not be exposed to public javascript.
   // Therefore we assert that we are not trying to call this as a

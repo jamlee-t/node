@@ -405,6 +405,7 @@ constexpr size_t kFsStatsBufferLength =
   V(tty_constructor_template, v8::FunctionTemplate)                            \
   V(write_wrap_template, v8::ObjectTemplate)
 
+// JAMLEE: 这里 Environment::MemoryInfo 有用到
 #define ENVIRONMENT_STRONG_PERSISTENT_VALUES(V)                                \
   V(as_callback_data, v8::Object)                                              \
   V(async_hooks_after_function, v8::Function)                                  \
@@ -639,6 +640,8 @@ class AsyncHooks : public MemoryRetainer {
  public:
   SET_MEMORY_INFO_NAME(AsyncHooks)
   SET_SELF_SIZE(AsyncHooks)
+
+  // JAMLEE: 实现MemoryRetainer的纯虚函数 MemoryInfo
   void MemoryInfo(MemoryTracker* tracker) const override;
 
   // Reason for both UidFields and Fields are that one is stored as a double*
@@ -861,10 +864,13 @@ class Environment : public MemoryRetainer {
   Environment(Environment&&) = delete;
   Environment& operator=(Environment&&) = delete;
 
+  // JAMLEE: 类名为 Environment
   SET_MEMORY_INFO_NAME(Environment)
 
   inline size_t SelfSize() const override;
   bool IsRootNode() const override { return true; }
+
+  // JAMLEE: 实现 MemoryRetainer 方法。tracker 是调用时创建的。
   void MemoryInfo(MemoryTracker* tracker) const override;
 
   void CreateProperties();

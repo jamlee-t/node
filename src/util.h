@@ -686,6 +686,7 @@ class SlicedArguments : public MaybeStackBuffer<v8::Local<v8::Value>> {
       const v8::FunctionCallbackInfo<v8::Value>& args, size_t start = 0);
 };
 
+// JAMLEE: 强制转换，例如  v8::Global 转为 v8::Local
 // Convert a v8::PersistentBase, e.g. v8::Global, to a Local, with an extra
 // optimization for strong persistent handles.
 class PersistentToLocal {

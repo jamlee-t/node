@@ -40,11 +40,12 @@ inline AsyncWrap::ProviderType AsyncWrap::set_provider_type(
   return provider_type_;
 }
 
+// JAMLEE: 获取 async_id_ 。也就是 1 个异步ID(环境)和1个AsyncWrap对象管理。
 inline double AsyncWrap::get_async_id() const {
   return async_id_;
 }
 
-
+// JAMLEE: 获取 trigger_async_id_。
 inline double AsyncWrap::get_trigger_async_id() const {
   return trigger_async_id_;
 }
@@ -80,6 +81,7 @@ inline v8::MaybeLocal<v8::Value> AsyncWrap::MakeCallback(
 }
 
 
+// JAMLEE: 创建一个回调，调用 JS 的方法。
 inline v8::MaybeLocal<v8::Value> AsyncWrap::MakeCallback(
     const v8::Local<v8::Name> symbol,
     int argc,

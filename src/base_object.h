@@ -53,10 +53,13 @@ class BaseObject : public MemoryRetainer {
   // is associated with the passed Isolate in debug mode.
   inline v8::Local<v8::Object> object(v8::Isolate* isolate) const;
 
+  // JAMLEE: 取全局对象 env
   inline v8::Global<v8::Object>& persistent();
 
+  // JAMLEE: 从对象中一定可以取到 env
   inline Environment* env() const;
 
+  // JAMLEE: 从 v8 对象中取到 BaseObject 或者 BaseObject 的子对象。这里是模板 T
   // Get a BaseObject* pointer, or subclass pointer, for the JS object that
   // was also passed to the `BaseObject()` constructor initially.
   // This may return `nullptr` if the C++ object has not been constructed yet,
@@ -97,6 +100,7 @@ class BaseObject : public MemoryRetainer {
   inline void RemoveCleanupHook();
 
  private:
+  // JALMEE: WrappedObject 就是指 v8 对象
   v8::Local<v8::Object> WrappedObject() const override;
   static void DeleteMe(void* data);
 
@@ -108,6 +112,7 @@ class BaseObject : public MemoryRetainer {
   friend int GenDebugSymbols();
   friend class CleanupHookCallback;
 
+  // JAMLEE: 当前对象关联的 V8 对象
   v8::Global<v8::Object> persistent_handle_;
   Environment* env_;
 };

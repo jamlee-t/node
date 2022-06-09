@@ -31,6 +31,9 @@
 
 namespace node {
 
+// JAMLEE: 
+// 1. env 中添加清理 hook
+// 2. object 和 v8 object 做关联
 BaseObject::BaseObject(Environment* env, v8::Local<v8::Object> object)
     : persistent_handle_(env->isolate(), object),
       env_(env) {
@@ -112,6 +115,7 @@ void BaseObject::ClearWeak() {
 }
 
 
+// JAMLEE: 返回一个函数模板对象, 用作 v8 对象的构造函数。
 v8::Local<v8::FunctionTemplate>
 BaseObject::MakeLazilyInitializedJSTemplate(Environment* env) {
   auto constructor = [](const v8::FunctionCallbackInfo<v8::Value>& args) {
@@ -124,6 +128,20 @@ BaseObject::MakeLazilyInitializedJSTemplate(Environment* env) {
   t->InstanceTemplate()->SetInternalFieldCount(1);
   return t;
 }
+
+// JAMLEE: PropertyCallbackInfo, 实现 v8 对象的属性获取。取每个属性时会调用1个 PropertyCallbackInfo
+// The information passed to a property callback about the context of the property access.
+/*
+void JsHttpRequestProcessor::GetHost(Local<String> name,
+                                     const PropertyCallbackInfo<Value>& info) {
+  HttpRequest* request = UnwrapRequest(info.Holder());
+  const string& path = request->Host();
+  info.GetReturnValue().Set(
+      String::NewFromUtf8(info.GetIsolate(), path.c_str(),
+                          NewStringType::kNormal,
+                          static_cast<int>(path.length())).ToLocalChecked());
+}
+*/
 
 template <int Field>
 void BaseObject::InternalFieldGet(

@@ -117,9 +117,12 @@ void AsyncWrap::DestroyAsyncIdsCallback(Environment* env) {
 }
 
 // JAMLEE: 所有事件触发最终交由这个函数处理
+// 1. 所有 BaseObject（其子类） 都关联了 env
+// 2. 当前异步操作的 async_id。
+// 3. 
 void Emit(Environment* env, double async_id, AsyncHooks::Fields type,
           Local<Function> fn) {
-  // 从 env 取出所有的 hooks
+  // 从 env 取出所有的 hooks。也就是说 hook 是全局的。
   AsyncHooks* async_hooks = env->async_hooks();
 
   // 如果当前hook对应没有值
@@ -154,7 +157,7 @@ void AsyncWrap::EmitTraceEventBefore() {
   }
 }
 
-// JAMLEE: 异步调用之前触发
+// JAMLEE: 异步调用之前触发。最终会调用 async_hooks_before_function() 获取当前全局的hook函数
 void AsyncWrap::EmitBefore(Environment* env, double async_id) {
   Emit(env, async_id, AsyncHooks::kBefore,
        env->async_hooks_before_function());
@@ -456,7 +459,7 @@ void AsyncWrap::QueueDestroyAsyncId(const FunctionCallbackInfo<Value>& args) {
       args[0].As<Number>()->Value());
 }
 
-// JAMLEE: 获取1个构造函数
+// JAMLEE: 获取1个构造函数（函数模板），用于构造 v8 对象。
 Local<FunctionTemplate> AsyncWrap::GetConstructorTemplate(Environment* env) {
   Local<FunctionTemplate> tmpl = env->async_wrap_ctor_template();
   if (tmpl.IsEmpty()) {
@@ -470,7 +473,7 @@ Local<FunctionTemplate> AsyncWrap::GetConstructorTemplate(Environment* env) {
   return tmpl;
 }
 
-// JAMLEE: 构造对象 target，为 target 设置上方法。
+// JAMLEE: 构造v8对象 target，为 target 设置上方法。target 是导出的对象。
 void AsyncWrap::Initialize(Local<Object> target,
                            Local<Value> unused,
                            Local<Context> context,
@@ -490,6 +493,9 @@ void AsyncWrap::Initialize(Local<Object> target,
   PropertyAttribute ReadOnlyDontDelete =
       static_cast<PropertyAttribute>(ReadOnly | DontDelete);
 
+  // JAMLEE: 暴露给 lib/internal/async_hook.js
+  // const { async_hook_fields, async_id_fields, owner_symbol } = async_wrap;
+
 #define FORCE_SET_TARGET_FIELD(obj, str, field)                               \
   (obj)->DefineOwnProperty(context,                                           \
                            FIXED_ONE_BYTE_STRING(isolate, str),               \
@@ -504,6 +510,11 @@ void AsyncWrap::Initialize(Local<Object> target,
                          "async_hook_fields",
                          env->async_hooks()->fields().GetJSArray());
 
+  // JAMLEE: 创建新的 asyncId 用 async_id_fields
+  // function newAsyncId() {
+  //   return ++async_id_fields[kAsyncIdCounter];
+  // }
+  
   // The following v8::Float64Array has 5 fields. These fields are shared in
   // this way to allow JS and C++ to read/write each value as quickly as
   // possible. The fields are represented as follows:
@@ -518,6 +529,7 @@ void AsyncWrap::Initialize(Local<Object> target,
                          "async_id_fields",
                          env->async_hooks()->async_id_fields().GetJSArray());
 
+  // JAMLEE: env->async_ids_stack_string() 是 async_ids_stack
   target->Set(context,
               env->async_ids_stack_string(),
               env->async_hooks()->async_ids_stack().GetJSArray()).Check();
@@ -527,6 +539,18 @@ void AsyncWrap::Initialize(Local<Object> target,
               env->owner_symbol()).Check();
 
   Local<Object> constants = Object::New(isolate);
+
+  // JAMLEE: SET_HOOKS_CONSTANT(kInit); 为 target 设置大量常量对象
+
+  // obj = constants, str = "kInit", field = Integer::New(isolate, AsyncHooks::kInit)
+  // FORCE_SET_TARGET_FIELD(                                              
+  //     constants, "kInit", Integer::New(isolate, AsyncHooks::kInit))
+  // 展开得到: 
+  // (constants)->DefineOwnProperty(context,                                      
+  //                          FIXED_ONE_BYTE_STRING(isolate, "kInit"),     
+  //                          Integer::New(isolate, AsyncHooks::kInit),                          
+  //                          ReadOnlyDontDelete).FromJust()
+
 #define SET_HOOKS_CONSTANT(name)                                              \
   FORCE_SET_TARGET_FIELD(                                                     \
       constants, #name, Integer::New(isolate, AsyncHooks::name))
@@ -544,6 +568,8 @@ void AsyncWrap::Initialize(Local<Object> target,
   SET_HOOKS_CONSTANT(kDefaultTriggerAsyncId);
   SET_HOOKS_CONSTANT(kStackLength);
 #undef SET_HOOKS_CONSTANT
+
+  // JAMLEE: target.constants = constants
   FORCE_SET_TARGET_FIELD(target, "constants", constants);
 
   Local<Object> async_providers = Object::New(isolate);
@@ -630,6 +656,7 @@ bool AsyncWrap::IsDoneInitializing() const {
   return init_hook_ran_;
 }
 
+// JAMLEE: 析构 AsyncWrap 时触发 EmitDestroy
 AsyncWrap::~AsyncWrap() {
   EmitTraceEventDestroy();
   EmitDestroy();

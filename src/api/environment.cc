@@ -258,6 +258,7 @@ void FreeIsolateData(IsolateData* isolate_data) {
   delete isolate_data;
 }
 
+// JAMLEE: 创建 env 对象，工具函数
 Environment* CreateEnvironment(IsolateData* isolate_data,
                                Local<Context> context,
                                int argc,

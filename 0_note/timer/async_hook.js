@@ -42,6 +42,13 @@ function promiseResolve(asyncId) { }
 const asyncHook =async_hooks.createHook({ init, before, after, destroy, promiseResolve });
 asyncHook.enable();
 
+getAsyncInfo();
 setTimeout(() => { 
     getAsyncInfo() ;
 }, 1000);
+setTimeout(() => { 
+    getAsyncInfo() ;
+}, 1500);
+setTimeout(() => { 
+    getAsyncInfo() ;
+}, 2000);

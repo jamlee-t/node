@@ -13,6 +13,7 @@
 
 namespace node {
 
+// JAMLEE: 代表 1 个 node 实例
 // TODO(joyeecheung): align this with the Worker/WorkerThreadData class.
 // We may be able to create an abstract class to reuse some of the routines.
 class NodeMainInstance {

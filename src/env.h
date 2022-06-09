@@ -635,9 +635,11 @@ namespace per_process {
 extern std::shared_ptr<KVStore> system_environment;
 }
 
-// JAMLEE: AsyncHooks 和 AsyncWrap 关系密切
+// JAMLEE: AsyncHooks 和 AsyncWrap 关系密切。
+// 1. 首先 AsyncHooks 是 env 对象中的1个字段。管理整个 node 中的 async_hook
 class AsyncHooks : public MemoryRetainer {
  public:
+  // JAMLEE: 在 memory 中的名字叫做 AsyncHooks
   SET_MEMORY_INFO_NAME(AsyncHooks)
   SET_SELF_SIZE(AsyncHooks)
 
@@ -647,14 +649,19 @@ class AsyncHooks : public MemoryRetainer {
   // Reason for both UidFields and Fields are that one is stored as a double*
   // and the other as a uint32_t*.
   enum Fields {
+    // 五种钩子
     kInit,
     kBefore,
     kAfter,
     kDestroy,
     kPromiseResolve,
+    // 钩子总数
     kTotals,
+    // async_hooks开启的个数
     kCheck,
+    // 记录栈的top指针
     kStackLength,
+    // 数组大小
     kFieldsCount,
   };
 
@@ -704,6 +711,7 @@ class AsyncHooks : public MemoryRetainer {
 
    private:
     AsyncHooks* async_hooks_;
+    // JAMLEE: 旧的 default_trigger_async_id。在构造函数中传入了新的 default_trigger_async_id。旧的就存在这里了
     double old_default_trigger_async_id_;
   };
 
@@ -712,11 +720,35 @@ class AsyncHooks : public MemoryRetainer {
   inline AsyncHooks();
   // Keep a list of all Persistent strings used for Provider types.
   std::array<v8::Eternal<v8::String>, AsyncWrap::PROVIDERS_LENGTH> providers_;
+
+  // JAMLEE: 存储 async id 到 async_ids_stack_。以栈的形式
+  // kExecutionAsyncId
+  // kTriggerAsyncId
+  // kExecutionAsyncId  // 表示 1 个执行上下文
+  // kTriggerAsyncId
   // Stores the ids of the current execution context stack.
   AliasedFloat64Array async_ids_stack_;
+
+  // JAMLEE:
+  // kInit,
+  // kBefore,
+  // kAfter,
+  // kDestroy,
+  // kPromiseResolve, // 上面 5 个都表示对应类型钩子的个数
+  // kTotals,         // 所有钩子加起来的个数
+  // kCheck,          // async_hooks 开启的个数
+  // kStackLength,    // async_ids_stack_ 字段的 top 指针
+  // kFieldsCount,
   // Attached to a Uint32Array that tracks the number of active hooks for
   // each type.
   AliasedUint32Array fields_;
+
+  // JAMLEE: 存储 async id 等。
+  // kExecutionAsyncId,        当前执行 async id
+  // kTriggerAsyncId,          当前执行 trigger async id
+  // kAsyncIdCounter,          管理自增的 async id
+  // kDefaultTriggerAsyncId,   默认的 trigger async id
+  // kUidFieldsCount,
   // Attached to a Float64Array that tracks the state of async resources.
   AliasedFloat64Array async_id_fields_;
 
@@ -857,6 +889,11 @@ class CleanupHookCallback {
   uint64_t insertion_order_counter_;
 };
 
+///////////////////////////////////////////////////////////////////
+//
+// JAMLEE: Environment 核心类
+//
+///////////////////////////////////////////////////////////////////
 class Environment : public MemoryRetainer {
  public:
   Environment(const Environment&) = delete;
@@ -1283,7 +1320,41 @@ class Environment : public MemoryRetainer {
   uv_check_t idle_check_handle_;
   bool profiler_idle_notifier_started_ = false;
 
+  // JAMLEE: 管理的全局的 async_hooks。里面包含 async_ids_stack_, fields, async_id_fields
+  // 这里默认会调用构造函数初始化，所以不需要手动初始化。https://docs.microsoft.com/zh-cn/cpp/cpp/constructors-cpp?view=msvc-170
+  /*
+  #include <iostream>
+  using namespace std;
+
+  class B
+  {
+  public:
+      B(){}
+      void show() {
+          cout << "Hello, World!";
+      }
+  };
+
+  class A
+  {
+  public:
+      A(){}
+      void show() {
+          b.show();
+      }
+  private:
+      B b;
+  };
+
+  int main(void) 
+  { 
+      A a;
+      a.show();
+      return 0 ; 
+  }
+  */ 
   AsyncHooks async_hooks_;
+
   ImmediateInfo immediate_info_;
   TickInfo tick_info_;
   const uint64_t timer_base_;

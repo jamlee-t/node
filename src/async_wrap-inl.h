@@ -98,6 +98,8 @@ inline v8::MaybeLocal<v8::Value> AsyncWrap::MakeCallback(
 }
 
 
+// JAMLEE: AsyncHooks::DefaultTriggerAsyncIdScope ::DefaultTriggerAsyncIdScope 构造函数。
+// 也就是用 async_wrap 创建 1 个 DefaultTriggerAsyncIdScope。
 // Defined here to avoid a circular dependency with env-inl.h.
 inline AsyncHooks::DefaultTriggerAsyncIdScope ::DefaultTriggerAsyncIdScope(
     AsyncWrap* async_wrap)

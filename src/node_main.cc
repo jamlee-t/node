@@ -93,6 +93,7 @@ extern bool linux_at_secure;
 }  // namespace per_process
 }  // namespace node
 
+// JAMLEE: nodejs 的二进制文件执行入口
 int main(int argc, char* argv[]) {
 #if defined(__POSIX__) && defined(NODE_SHARED_MODE)
   // In node::PlatformInit(), we squash all signal handlers for non-shared lib
@@ -124,7 +125,7 @@ int main(int argc, char* argv[]) {
   setvbuf(stdout, nullptr, _IONBF, 0);
   setvbuf(stderr, nullptr, _IONBF, 0);
 
-  // 程序启动入口
+  // JAMLEE: 真正的程序启动入口
   return node::Start(argc, argv);
 }
 #endif

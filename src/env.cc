@@ -287,6 +287,11 @@ std::string GetExecPath(const std::vector<std::string>& argv) {
   return exec_path;
 }
 
+///////////////////////////////////////////////////////////////////
+//
+// JAMLEE: Environment::Environment 构造函数。 
+//
+///////////////////////////////////////////////////////////////////
 Environment::Environment(IsolateData* isolate_data,
                          Local<Context> context,
                          const std::vector<std::string>& args,
@@ -677,7 +682,7 @@ void Environment::RunAndClearNativeImmediates() {
   immediate_info()->ref_count_dec(ref_count);
 }
 
-// JAMLEE: js 传递过来的定时秒数，会在这里设置到 loop 中
+// JAMLEE: js 传递过来的定时秒数，会在这里设置到 libuv loop 中
 void Environment::ScheduleTimer(int64_t duration_ms) {
   if (started_cleanup_) return;
   uv_timer_start(timer_handle(), RunTimers, duration_ms, 0);
@@ -898,6 +903,7 @@ void TickInfo::MemoryInfo(MemoryTracker* tracker) const {
   tracker->TrackField("fields", fields_);
 }
 
+// JAMLEE: 覆盖上层函数。用于 heapshot 快照
 void AsyncHooks::MemoryInfo(MemoryTracker* tracker) const {
   tracker->TrackField("providers", providers_);
   tracker->TrackField("async_ids_stack", async_ids_stack_);

@@ -64,12 +64,15 @@ inline MultiIsolatePlatform* IsolateData::platform() const {
   return platform_;
 }
 
+// JAMLEE: AsyncHooks 构造函数。可以看到这是无参数的构造函数。如果类的成员对象是其他类，
+// 那么初始化要在初始化列表中调用。否则会调用 "其他类" 的无参构造函数。AsyncHooks 就是如此被初始化的 
 inline AsyncHooks::AsyncHooks()
     : async_ids_stack_(env()->isolate(), 16 * 2),
       fields_(env()->isolate(), kFieldsCount),
       async_id_fields_(env()->isolate(), kUidFieldsCount) {
   v8::HandleScope handle_scope(env()->isolate());
 
+  // JAMLEE: 开启的 async_hooks 数量为 1。表示 async_hooks is enabled
   // Always perform async_hooks checks, not just when async_hooks is enabled.
   // TODO(AndreasMadsen): Consider removing this for LTS releases.
   // See discussion in https://github.com/nodejs/node/pull/15454
@@ -77,12 +80,17 @@ inline AsyncHooks::AsyncHooks()
   // and flag changes won't be included.
   fields_[kCheck] = 1;
 
+  // JAMLEE: 首次执行 trigger async id 设置为 -1.
   // kDefaultTriggerAsyncId should be -1, this indicates that there is no
   // specified default value and it should fallback to the executionAsyncId.
   // 0 is not used as the magic value, because that indicates a missing context
   // which is different from a default context.
   async_id_fields_[AsyncHooks::kDefaultTriggerAsyncId] = -1;
 
+  // JAMLEE: 首次执行 async id 设置为 1. 例如 setTimeout 执行后:
+  // 异步任务初始化 2, Timeout
+  // 当前的异步任务ID: 2
+  // 上一级的异步任务ID: 1
   // kAsyncIdCounter should start at 1 because that'll be the id the execution
   // context during bootstrap (code that runs before entering uv_run()).
   async_id_fields_[AsyncHooks::kAsyncIdCounter] = 1;
@@ -113,6 +121,7 @@ inline AliasedFloat64Array& AsyncHooks::async_ids_stack() {
   return async_ids_stack_;
 }
 
+// JAMLEE: 获取资源 provider 类型
 inline v8::Local<v8::String> AsyncHooks::provider_string(int idx) {
   return providers_[idx].Get(env()->isolate());
 }
@@ -125,9 +134,11 @@ inline Environment* AsyncHooks::env() {
   return Environment::ForAsyncHooks(this);
 }
 
+// JAMLEE: kExecutionAsyncId + kTriggerAsyncId 压入栈中，先 kExecutionAsyncId 后 kTriggerAsyncId
 // Remember to keep this code aligned with pushAsyncIds() in JS.
 inline void AsyncHooks::push_async_ids(double async_id,
                                        double trigger_async_id) {
+  // JAMLEE: 1. fields_[kCheck] 已经开启的 hook > 0。用于判断 async_hook 是否启用了
   // Since async_hooks is experimental, do only perform the check
   // when async_hooks is enabled.
   if (fields_[kCheck] > 0) {
@@ -137,19 +148,24 @@ inline void AsyncHooks::push_async_ids(double async_id,
 
   uint32_t offset = fields_[kStackLength];
   if (offset * 2 >= async_ids_stack_.Length())
-    grow_async_ids_stack();
+    grow_async_ids_stack(); // 如果栈已经用完了，则增长空间大小
   async_ids_stack_[2 * offset] = async_id_fields_[kExecutionAsyncId];
   async_ids_stack_[2 * offset + 1] = async_id_fields_[kTriggerAsyncId];
-  fields_[kStackLength] += 1;
+  fields_[kStackLength] += 1; // kStackLength 表示有多少对 kExecutionAsyncId + kTriggerAsyncId
   async_id_fields_[kExecutionAsyncId] = async_id;
   async_id_fields_[kTriggerAsyncId] = trigger_async_id;
 }
 
+// JAMLEE: 出栈，也就是 Async Id 退出
 // Remember to keep this code aligned with popAsyncIds() in JS.
 inline bool AsyncHooks::pop_async_id(double async_id) {
   // In case of an exception then this may have already been reset, if the
   // stack was multiple MakeCallback()'s deep.
   if (fields_[kStackLength] == 0) return false;
+
+  // JAMLEE:
+  // 1. async_id_fields_[kExecutionAsyncId] != async_id 弹出的 async_id 不是当前正在执行的
+  // 2. fields_[kCheck] 已经开启的 hook > 0。用于判断 async_hook 是否启用了
 
   // Ask for the async_id to be restored as a check that the stack
   // hasn't been corrupted.
@@ -170,7 +186,7 @@ inline bool AsyncHooks::pop_async_id(double async_id) {
     ABORT_NO_BACKTRACE();
   }
 
-  uint32_t offset = fields_[kStackLength] - 1;
+  uint32_t offset = fields_[kStackLength] - 1; // 出栈，当前的 async id 更新
   async_id_fields_[kExecutionAsyncId] = async_ids_stack_[2 * offset];
   async_id_fields_[kTriggerAsyncId] = async_ids_stack_[2 * offset + 1];
   fields_[kStackLength] = offset;
@@ -178,6 +194,7 @@ inline bool AsyncHooks::pop_async_id(double async_id) {
   return fields_[kStackLength] > 0;
 }
 
+// JAMLEE: 清除整个 async 栈
 // Keep in sync with clearAsyncIdStack in lib/internal/async_hooks.js.
 inline void AsyncHooks::clear_async_id_stack() {
   async_id_fields_[kExecutionAsyncId] = 0;
@@ -185,9 +202,11 @@ inline void AsyncHooks::clear_async_id_stack() {
   fields_[kStackLength] = 0;
 }
 
+
+// JAMLEE: DefaultTriggerAsyncIdScope 构造函数。默认 default_trigger_async_id 的是 -1。
+// 创建 DefaultTriggerAsyncIdScope 时, 传入新的 default_trigger_async_id
 // The DefaultTriggerAsyncIdScope(AsyncWrap*) constructor is defined in
 // async_wrap-inl.h to avoid a circular dependency.
-
 inline AsyncHooks::DefaultTriggerAsyncIdScope ::DefaultTriggerAsyncIdScope(
     Environment* env, double default_trigger_async_id)
     : async_hooks_(env->async_hooks()) {
@@ -195,18 +214,21 @@ inline AsyncHooks::DefaultTriggerAsyncIdScope ::DefaultTriggerAsyncIdScope(
     CHECK_GE(default_trigger_async_id, 0);
   }
 
+  // JAMLEE: 旧的默认 kDefaultTriggerAsyncId
   old_default_trigger_async_id_ =
     async_hooks_->async_id_fields()[AsyncHooks::kDefaultTriggerAsyncId];
   async_hooks_->async_id_fields()[AsyncHooks::kDefaultTriggerAsyncId] =
     default_trigger_async_id;
 }
 
+// JAMLEE: DefaultTriggerAsyncIdScope 构造函数。恢复旧的 old_default_trigger_async_id_ 
 inline AsyncHooks::DefaultTriggerAsyncIdScope ::~DefaultTriggerAsyncIdScope() {
   async_hooks_->async_id_fields()[AsyncHooks::kDefaultTriggerAsyncId] =
     old_default_trigger_async_id_;
 }
 
 
+// JAMLEE: 根据 hooks 找到当前的 env 对象
 Environment* Environment::ForAsyncHooks(AsyncHooks* hooks) {
   return ContainerOf(&Environment::async_hooks_, hooks);
 }
@@ -438,6 +460,7 @@ inline void Environment::set_is_in_inspector_console_call(bool value) {
 }
 #endif
 
+// JAMLEE: 从 env 中获取 async_hooks_
 inline AsyncHooks* Environment::async_hooks() {
   return &async_hooks_;
 }

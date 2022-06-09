@@ -137,7 +137,7 @@ class AsyncWrap : public BaseObject {
   static v8::Local<v8::FunctionTemplate> GetConstructorTemplate(
       Environment* env);
 
-  // JAMLEE: 初始化 target，这个是 v8 对象。也就是当前关联的 v8 对象。
+  // JAMLEE: 注意这些是静态方法。初始化 target，这个是 v8 对象。也就是当前关联的 v8 对象。
   static void Initialize(v8::Local<v8::Object> target,
                          v8::Local<v8::Value> unused,
                          v8::Local<v8::Context> context,
@@ -151,7 +151,7 @@ class AsyncWrap : public BaseObject {
   static void QueueDestroyAsyncId(
     const v8::FunctionCallbackInfo<v8::Value>& args);
 
-  // JAMLEE: 触发异步hook事件
+  // JAMLEE: 注意这些是静态方法。触发异步hook事件
   static void EmitAsyncInit(Environment* env,
                             v8::Local<v8::Object> object,
                             v8::Local<v8::String> type,

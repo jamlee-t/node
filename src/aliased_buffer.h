@@ -250,6 +250,7 @@ class AliasedBufferBase {
   v8::Global<V8T> js_array_;
 };
 
+// JAMLEE: 不同大小的数组
 typedef AliasedBufferBase<int32_t, v8::Int32Array> AliasedInt32Array;
 typedef AliasedBufferBase<uint8_t, v8::Uint8Array> AliasedUint8Array;
 typedef AliasedBufferBase<uint32_t, v8::Uint32Array> AliasedUint32Array;

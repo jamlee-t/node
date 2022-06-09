@@ -16,6 +16,11 @@ using v8::Local;
 using v8::Locker;
 using v8::SealHandleScope;
 
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: NodeMainInstance::NodeMainInstance 构造函数。设置 v8 isolate 相关内容
+//
+/////////////////////////////////////////////////////////////////////////////////////
 NodeMainInstance::NodeMainInstance(Isolate* isolate,
                                    uv_loop_t* event_loop,
                                    MultiIsolatePlatform* platform,
@@ -95,11 +100,21 @@ NodeMainInstance::~NodeMainInstance() {
   platform_->UnregisterIsolate(isolate_);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: NodeMainInstance::Run 入口函数。开始运行 nodejs
+//
+/////////////////////////////////////////////////////////////////////////////////////
 int NodeMainInstance::Run() {
   Locker locker(isolate_);
   Isolate::Scope isolate_scope(isolate_);
   HandleScope handle_scope(isolate_);
 
+  /////////////////////////////////////////////////////////////////////////////////////
+  //
+  // JAMLEE: 核心代码创建 env 对象
+  //
+  /////////////////////////////////////////////////////////////////////////////////////
   int exit_code = 0;
   std::unique_ptr<Environment> env = CreateMainEnvironment(&exit_code);
 
@@ -110,6 +125,11 @@ int NodeMainInstance::Run() {
     {
       AsyncCallbackScope callback_scope(env.get());
       env->async_hooks()->push_async_ids(1, 0);
+      /////////////////////////////////////////////////////////////////////////////////////
+      //
+      // JAMLEE: 加载 env
+      //
+      /////////////////////////////////////////////////////////////////////////////////////
       LoadEnvironment(env.get());
       env->async_hooks()->pop_async_id(1);
     }
@@ -121,6 +141,12 @@ int NodeMainInstance::Run() {
       bool more;
       env->performance_state()->Mark(
           node::performance::NODE_PERFORMANCE_MILESTONE_LOOP_START);
+      
+      /////////////////////////////////////////////////////////////////////////////////////
+      //
+      // JAMLEE: 核心代码启动事件循环, 启动流程到此为止
+      //
+      /////////////////////////////////////////////////////////////////////////////////////
       do {
         uv_run(env->event_loop(), UV_RUN_DEFAULT);
 
@@ -139,6 +165,7 @@ int NodeMainInstance::Run() {
         // event, or after running some callbacks.
         more = uv_loop_alive(env->event_loop());
       } while (more == true && !env->is_stopping());
+
       env->performance_state()->Mark(
           node::performance::NODE_PERFORMANCE_MILESTONE_LOOP_EXIT);
     }
@@ -163,6 +190,11 @@ int NodeMainInstance::Run() {
   return exit_code;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: NodeMainInstance::CreateMainEnvironment 关键的env创建函数。
+//
+/////////////////////////////////////////////////////////////////////////////////////
 // TODO(joyeecheung): align this with the CreateEnvironment exposed in node.h
 // and the environment creation routine in workers somehow.
 std::unique_ptr<Environment> NodeMainInstance::CreateMainEnvironment(
@@ -190,6 +222,7 @@ std::unique_ptr<Environment> NodeMainInstance::CreateMainEnvironment(
   CHECK(!context.IsEmpty());
   Context::Scope context_scope(context);
 
+  // JAMLEE: 尽量使用std::make_unique和std::make_shared而不直接使用new
   std::unique_ptr<Environment> env = std::make_unique<Environment>(
       isolate_data_.get(),
       context,
@@ -199,7 +232,7 @@ std::unique_ptr<Environment> NodeMainInstance::CreateMainEnvironment(
                                       Environment::kOwnsProcessState |
                                       Environment::kOwnsInspector));
   env->InitializeLibuv(per_process::v8_is_profiling);
-  env->InitializeDiagnostics();
+  env->InitializeDiagnostics(); // JAMLEE: 用于 heapshot
 
   // TODO(joyeecheung): when we snapshot the bootstrapped context,
   // the inspector and diagnostics setup should after after deserialization.

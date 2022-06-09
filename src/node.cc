@@ -268,6 +268,7 @@ void Environment::InitializeDiagnostics() {
 #endif
 }
 
+// JAMLEE: 执行 js 文件写的加载脚本
 MaybeLocal<Value> Environment::BootstrapInternalLoaders() {
   EscapableHandleScope scope(isolate_);
 
@@ -309,6 +310,7 @@ MaybeLocal<Value> Environment::BootstrapInternalLoaders() {
   return scope.Escape(loader_exports);
 }
 
+// JAMLEE: 启动 nodejs
 MaybeLocal<Value> Environment::BootstrapNode() {
   EscapableHandleScope scope(isolate_);
 
@@ -350,6 +352,7 @@ MaybeLocal<Value> Environment::BootstrapNode() {
   return scope.EscapeMaybe(result);
 }
 
+// JAMLEE: 启动 nodejs
 MaybeLocal<Value> Environment::RunBootstrapping() {
   EscapableHandleScope scope(isolate_);
 
@@ -375,12 +378,14 @@ MaybeLocal<Value> Environment::RunBootstrapping() {
   return scope.Escape(result);
 }
 
+// JAMLEE: nodejs 启动阶段完毕。
 void MarkBootstrapComplete(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   env->performance_state()->Mark(
       performance::NODE_PERFORMANCE_MILESTONE_BOOTSTRAP_COMPLETE);
 }
 
+// JAMLEE: nodejs 开始执行脚本文件。
 MaybeLocal<Value> StartExecution(Environment* env, const char* main_script_id) {
   EscapableHandleScope scope(env->isolate());
   CHECK_NOT_NULL(main_script_id);
@@ -410,6 +415,7 @@ MaybeLocal<Value> StartExecution(Environment* env, const char* main_script_id) {
   return scope.Escape(result);
 }
 
+// JAMLEE: nodejs 开始主线程执行。
 MaybeLocal<Value> StartMainThreadExecution(Environment* env) {
   // To allow people to extend Node in different ways, this hook allows
   // one to drop a file lib/_third_party_main.js into the build
@@ -497,7 +503,7 @@ static struct {
 } stdio[1 + STDERR_FILENO];
 #endif  // __POSIX__
 
-// 初始化 v8 platfrom
+// JAMLEE: 初始化 v8 platfrom。
 inline void PlatformInit() {
 #ifdef __POSIX__
 #if HAVE_INSPECTOR
@@ -658,7 +664,8 @@ void ResetStdio() {
 #endif  // __POSIX__
 }
 
-
+// JAMLEE: 进程全局参数
+// 调用链条: 1. Start -> InitializeOncePerProcess -> InitializeNodeWithArgs -> ProcessGlobalArgs
 int ProcessGlobalArgs(std::vector<std::string>* args,
                       std::vector<std::string>* exec_args,
                       std::vector<std::string>* errors,
@@ -731,7 +738,8 @@ int ProcessGlobalArgs(std::vector<std::string>* args,
 
 static std::atomic_bool init_called{false};
 
-// 参数初始化 node
+// JAMLEE：参数初始化 node
+// 调用链条: 1. Start -> InitializeOncePerProcess -> InitializeNodeWithArgs
 int InitializeNodeWithArgs(std::vector<std::string>* argv,
                            std::vector<std::string>* exec_argv,
                            std::vector<std::string>* errors) {
@@ -741,7 +749,7 @@ int InitializeNodeWithArgs(std::vector<std::string>* argv,
   // Initialize node_start_time to get relative uptime.
   per_process::node_start_time = uv_hrtime();
 
-  // 这里注册模块是指注册 internal 模块
+  // JAMLEE: 这里注册模块是指注册 internal 模块
   // Register built-in modules
   binding::RegisterBuiltinModules();
 
@@ -911,7 +919,8 @@ void Init(int* argc,
     argv[i] = strdup(argv_[i].c_str());
 }
 
-// 启动时执行 Node 环境初始化
+// JAMLEE: 启动时执行 Node 环境初始化。
+// 调用链条: 1. Start -> InitializeOncePerProcess
 InitializationResult InitializeOncePerProcess(int argc, char** argv) {
   atexit(ResetStdio);
 
@@ -937,7 +946,7 @@ InitializationResult InitializeOncePerProcess(int argc, char** argv) {
 
   // This needs to run *before* V8::Initialize().
   {
-    // 根据命令参数初始化 node
+    // JAMLEE: 根据命令参数初始化 node
     result.exit_code =
         InitializeNodeWithArgs(&(result.args), &(result.exec_args), &errors);
     for (const std::string& error : errors)
@@ -976,6 +985,7 @@ InitializationResult InitializeOncePerProcess(int argc, char** argv) {
   V8::SetEntropySource(crypto::EntropySource);
 #endif  // HAVE_OPENSSL
 
+  // JAMLEE: v8 库初始化
   InitializeV8Platform(per_process::cli_options->v8_thread_pool_size);
   V8::Initialize();
   performance::performance_v8_start = PERFORMANCE_NOW();
@@ -983,6 +993,7 @@ InitializationResult InitializeOncePerProcess(int argc, char** argv) {
   return result;
 }
 
+// JAMLEE: 每个进程只执行 1 次。关闭进程时要做的操作
 void TearDownOncePerProcess() {
   per_process::v8_initialized = false;
   V8::Dispose();
@@ -996,10 +1007,11 @@ void TearDownOncePerProcess() {
   per_process::v8_platform.Dispose();
 }
 
-// JAMLEE: Nodejs 启动入口
+// JAMLEE: Start 真正的 Nodejs 启动入口
 int Start(int argc, char** argv) {
-  // 初始化包含了 1. v8 初始化 2. 内部模块注册
+  // JAMLEE: 做了2个事情 1. v8 初始化 2. 内部模块注册 。每个进程必定只执行 1 次，注意这里没有创建 env 对象
   InitializationResult result = InitializeOncePerProcess(argc, argv);
+
   if (result.early_return) {
     return result.exit_code;
   }
@@ -1023,6 +1035,7 @@ int Start(int argc, char** argv) {
       }
     }
 
+    // JAMLEE: 核心的 node 启动入口
     NodeMainInstance main_instance(&params,
                                    uv_default_loop(),
                                    per_process::v8_platform.Platform(),
@@ -1036,6 +1049,7 @@ int Start(int argc, char** argv) {
   return result.exit_code;
 }
 
+// JAMLEE: 停止 nodejs 时，传入参数是 env
 int Stop(Environment* env) {
   env->ExitEnv();
   return 0;

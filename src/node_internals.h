@@ -200,6 +200,7 @@ v8::MaybeLocal<v8::Value> InternalMakeCallback(
     v8::Local<v8::Value> argv[],
     async_context asyncContext);
 
+// JAMLEE: scope。当 C++ 回调时上层 JS 时，用于触发 callback 前后调用。
 class InternalCallbackScope {
  public:
   // Tell the constructor whether its `object` parameter may be empty or not.

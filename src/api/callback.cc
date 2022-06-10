@@ -34,6 +34,7 @@ CallbackScope::~CallbackScope() {
   delete private_;
 }
 
+// JAMLEE: InternalCallbackScope 构造函数。触发 push_async_ids
 InternalCallbackScope::InternalCallbackScope(AsyncWrap* async_wrap)
     : InternalCallbackScope(async_wrap->env(),
                             async_wrap->object(),

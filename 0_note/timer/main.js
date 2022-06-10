@@ -17,7 +17,6 @@
 //     unrefActive
 // } = require('internal/timers');
 
-
 function Animal(name) {
   this.name = name;
 }

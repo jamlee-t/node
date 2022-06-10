@@ -5,7 +5,7 @@ const util = require('util');
 
 function debug(...args) {
     // Use a function like this one when debugging inside an AsyncHooks callback
-    fs.writeFileSync(__dirname + '/log.out', `${util.format(...args)}\n`, { flag: 'a' });
+    fs.writeFileSync(1, `${util.format(...args)}\n`, { flag: 'a' });
 }
 
 function getAsyncInfo() {
@@ -22,7 +22,6 @@ function getAsyncInfo() {
 // completed construction when this callback runs, therefore all fields of the
 // resource referenced by "asyncId" may not have been populated.
 function init(asyncId, type, triggerAsyncId, resource) { 
-
     // 这里 resource 会是 1个类。例如 Timeout
     debug(`异步任务初始化 ${asyncId}, ${resource.constructor.name}`);
 }

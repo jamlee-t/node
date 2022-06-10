@@ -7,7 +7,7 @@ const util = require('util');
 
 function debug(...args) {
     // Use a function like this one when debugging inside an AsyncHooks callback
-    fs.writeFileSync(__dirname + '/log.out', `${util.format(...args)}\n`, { flag: 'a' });
+    fs.writeFileSync(1, `${util.format(...args)}\n`, { flag: 'a' });
 }
 function getAsyncInfo() {
     const eid = async_hooks.executionAsyncId();

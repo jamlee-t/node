@@ -21,6 +21,8 @@ createHook({
 }).enable();
 
 
+// 这里是 Timeout 对象发起回调。async_id 指向这个 Timout 对象。
+
 // 输出
 // init: Timeout(2), trigger 1 execution 1
 // before: trigger 1 execution 2

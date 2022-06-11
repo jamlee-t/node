@@ -116,10 +116,11 @@ void AsyncWrap::DestroyAsyncIdsCallback(Environment* env) {
   } while (!env->destroy_async_id_list()->empty());
 }
 
-// JAMLEE: 所有事件触发最终交由这个函数处理
-// 1. 所有 BaseObject（其子类） 都关联了 env
-// 2. 当前异步操作的 async_id。
-// 3. 
+// JAMLEE: 静态方法。所有事件触发最终交由这个函数处理
+// env: node 的核心对象
+// async_id: init, before, after, destroy 事件的触发的 id。
+// type: 异步对象类型。例如 kBefore, kAfter
+// fn: 事件触发调用的回调函数。fn->Call(env->context(), Undefined(env->isolate()), 1, &async_id_value)
 void Emit(Environment* env, double async_id, AsyncHooks::Fields type,
           Local<Function> fn) {
   // 从 env 取出所有的 hooks。也就是说 hook 是全局的。
@@ -132,6 +133,10 @@ void Emit(Environment* env, double async_id, AsyncHooks::Fields type,
   HandleScope handle_scope(env->isolate());
   Local<Value> async_id_value = Number::New(env->isolate(), async_id);
   TryCatchScope try_catch(env, TryCatchScope::CatchMode::kFatal);
+  // JAMLEE: 调用 fn->Call(env->context(), Undefined(env->isolate()), 1, &async_id_value)
+  // The USE(x, ...) template is used to silence C++ compiler warnings
+  // issued for (yet) unused variables (typically parameters).
+  // The arguments are guaranteed to be evaluated from left to right.
   USE(fn->Call(env->context(), Undefined(env->isolate()), 1, &async_id_value));
 }
 
@@ -157,13 +162,13 @@ void AsyncWrap::EmitTraceEventBefore() {
   }
 }
 
-// JAMLEE: 异步调用之前触发。最终会调用 async_hooks_before_function() 获取当前全局的hook函数
+// JAMLEE: 静态方法。异步调用之前触发。最终会调用 async_hooks_before_function() 获取当前全局的hook函数
 void AsyncWrap::EmitBefore(Environment* env, double async_id) {
   Emit(env, async_id, AsyncHooks::kBefore,
        env->async_hooks_before_function());
 }
 
-
+// JAMLEE: 静态方法。
 void AsyncWrap::EmitTraceEventAfter(ProviderType type, double async_id) {
   switch (type) {
 #define V(PROVIDER)                                                           \
@@ -179,7 +184,7 @@ void AsyncWrap::EmitTraceEventAfter(ProviderType type, double async_id) {
   }
 }
 
-// JAMLEE: 异步调用之后触发
+// JAMLEE: 静态方法。异步调用之后触发
 void AsyncWrap::EmitAfter(Environment* env, double async_id) {
   // If the user's callback failed then the after() hooks will be called at the
   // end of _fatalException().
@@ -187,6 +192,7 @@ void AsyncWrap::EmitAfter(Environment* env, double async_id) {
        env->async_hooks_after_function());
 }
 
+// JAMLEE: 为 Promise 设置 PromiseWrap
 class PromiseWrap : public AsyncWrap {
  public:
   PromiseWrap(Environment* env, Local<Object> object, bool silent)
@@ -293,7 +299,7 @@ static void PromiseHook(PromiseHookType type, Local<Promise> promise,
   }
 }
 
-// JAMLEE: 设置 hook。args[0] 是 { init, before, after, destroy, promiseResolve }
+// JAMLEE: 静态方法。设置 hook。args[0] 是 { init, before, after, destroy, promiseResolve }
 static void SetupHooks(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
@@ -381,7 +387,7 @@ void AsyncWrap::WeakCallback(const WeakCallbackInfo<DestroyParam>& info) {
   // unique_ptr goes out of scope here and pointer is deleted.
 }
 
-
+// JAMLEE: 工具函数，在 Initialize 中被调用。static 这里的含义是和 C 语言一致。表示仅内部用
 static void RegisterDestroyHook(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[0]->IsObject());
   CHECK(args[1]->IsNumber());
@@ -404,7 +410,7 @@ void AsyncWrap::GetAsyncId(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(wrap->get_async_id());
 }
 
-// JAMLEE: 调用 env->async_hooks()->push_async_ids 把 async_id 存到 env 中。
+// JAMLEE: 静态方法。调用 env->async_hooks()->push_async_ids 把 async_id 存到 env 中。
 void AsyncWrap::PushAsyncIds(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   // No need for CHECK(IsNumber()) on args because if FromJust() doesn't fail
@@ -414,7 +420,7 @@ void AsyncWrap::PushAsyncIds(const FunctionCallbackInfo<Value>& args) {
   env->async_hooks()->push_async_ids(async_id, trigger_async_id);
 }
 
-// JAMLEE: 调用 env->async_hooks()->pop_async_id 把 async_id 存到 env 中。
+// JAMLEE: 静态方法。调用 env->async_hooks()->pop_async_id 把 async_id 存到 env 中。
 void AsyncWrap::PopAsyncIds(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   double async_id = args[0]->NumberValue(env->context()).FromJust();
@@ -422,7 +428,8 @@ void AsyncWrap::PopAsyncIds(const FunctionCallbackInfo<Value>& args) {
 }
 
 
-// JAMLEE: args[0] 是 resource 。重置这个resource 
+// JAMLEE: 静态方法。1. args[0] 是 resource。重置这个resource。 2. args[1] 是 execution_async_id
+// 资源的 async_id 设置到 resource 上
 void AsyncWrap::AsyncReset(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[0]->IsObject());
 
@@ -435,7 +442,7 @@ void AsyncWrap::AsyncReset(const FunctionCallbackInfo<Value>& args) {
   wrap->AsyncReset(resource, execution_async_id);
 }
 
-
+// JAMLEE: 获取 ProviderType 也就是 TcpWrap。
 void AsyncWrap::GetProviderType(const FunctionCallbackInfo<Value>& args) {
   AsyncWrap* wrap;
   args.GetReturnValue().Set(AsyncWrap::PROVIDER_NONE);
@@ -444,14 +451,14 @@ void AsyncWrap::GetProviderType(const FunctionCallbackInfo<Value>& args) {
 }
 
 
-// JAMLEE: 触发 Destory 事件
+// JAMLEE: 静态方法。触发 Destory 事件
 void AsyncWrap::EmitDestroy() {
   AsyncWrap::EmitDestroy(env(), async_id_);
   // Ensure no double destroy is emitted via AsyncReset().
   async_id_ = kInvalidAsyncId;
 }
 
-// JAMLEE: 触发 Destory 事件
+// JAMLEE: 静态方法。触发 Destory 事件
 void AsyncWrap::QueueDestroyAsyncId(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[0]->IsNumber());
   AsyncWrap::EmitDestroy(
@@ -459,7 +466,7 @@ void AsyncWrap::QueueDestroyAsyncId(const FunctionCallbackInfo<Value>& args) {
       args[0].As<Number>()->Value());
 }
 
-// JAMLEE: 获取1个构造函数（函数模板），用于构造 v8 对象。
+// JAMLEE: 静态方法。获取1个构造函数（函数模板），用于构造 v8 对象。在 AsyncWrap::Initialize 中被调用
 Local<FunctionTemplate> AsyncWrap::GetConstructorTemplate(Environment* env) {
   Local<FunctionTemplate> tmpl = env->async_wrap_ctor_template();
   if (tmpl.IsEmpty()) {
@@ -473,7 +480,7 @@ Local<FunctionTemplate> AsyncWrap::GetConstructorTemplate(Environment* env) {
   return tmpl;
 }
 
-// JAMLEE: 构造v8对象 target，为 target 设置上方法。target 是导出的对象。
+// JAMLEE: 静态方法。构造v8对象 target，为 target 设置上方法。target 是导出的对象，给到 lib/internal/async_hook.js 使用
 void AsyncWrap::Initialize(Local<Object> target,
                            Local<Value> unused,
                            Local<Context> context,
@@ -627,6 +634,7 @@ AsyncWrap::AsyncWrap(Environment* env,
   init_hook_ran_ = true;
 }
 
+// JAMLEE: 构造函数
 AsyncWrap::AsyncWrap(Environment* env, Local<Object> object)
   : BaseObject(env, object) {
 }
@@ -662,6 +670,7 @@ AsyncWrap::~AsyncWrap() {
   EmitDestroy();
 }
 
+// JAMLEE: 静态方法。
 void AsyncWrap::EmitTraceEventDestroy() {
   switch (provider_type()) {
   #define V(PROVIDER)                                                         \
@@ -677,6 +686,7 @@ void AsyncWrap::EmitTraceEventDestroy() {
   }
 }
 
+// JAMLEE: 静态方法。
 void AsyncWrap::EmitDestroy(Environment* env, double async_id) {
   if (env->async_hooks()->fields()[AsyncHooks::kDestroy] == 0 ||
       !env->can_call_into_js()) {
@@ -690,7 +700,9 @@ void AsyncWrap::EmitDestroy(Environment* env, double async_id) {
   env->destroy_async_id_list()->push_back(async_id);
 }
 
+// JAMLEE: 有个静态方法 AsyncReset。会新建对象 AsyncWrap，然后调用 reset 方法。
 void AsyncWrap::AsyncReset(double execution_async_id, bool silent) {
+  // 调用另外 1 个实例方法 AsyncWrap::AsyncReset
   AsyncReset(object(), execution_async_id, silent);
 }
 
@@ -742,7 +754,7 @@ void AsyncWrap::AsyncReset(Local<Object> resource, double execution_async_id,
                 async_id_, trigger_async_id_);
 }
 
-// JAMLEE: 触发 Init 方法
+// JAMLEE: 静态方法。 触发 Init 方法
 void AsyncWrap::EmitAsyncInit(Environment* env,
                               Local<Object> object,
                               Local<String> type,

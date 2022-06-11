@@ -203,7 +203,7 @@ inline void AsyncHooks::clear_async_id_stack() {
 }
 
 
-// JAMLEE: DefaultTriggerAsyncIdScope 构造函数。默认 default_trigger_async_id 的是 -1。
+// JAMLEE: 用于快捷获取 default_trigger_async_id。DefaultTriggerAsyncIdScope 构造函数。默认 default_trigger_async_id 的是 -1。
 // 创建 DefaultTriggerAsyncIdScope 时, 传入新的 default_trigger_async_id
 // The DefaultTriggerAsyncIdScope(AsyncWrap*) constructor is defined in
 // async_wrap-inl.h to avoid a circular dependency.

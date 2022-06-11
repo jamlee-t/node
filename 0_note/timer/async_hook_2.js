@@ -1,14 +1,13 @@
 const { createHook, executionAsyncId, triggerAsyncId } = require('async_hooks');
 const fs = require('fs');
-const net = require('net');
 
 createHook({
-  init(asyncId, type, triggerAsyncId) {
+  init(asyncId, type, triggerAsyncId, resource) {
     fs.writeSync(
       1,
-      `init: ${type}(${asyncId}), trigger ${triggerAsyncId}\n`);
+      `init: ${type}(${asyncId}), trigger ${triggerAsyncId} ${resource}\n`);
   },
-  before(asyncId) {
+  before(asyncId, ) {
     fs.writeSync(
       1,
       `before: trigger ${triggerAsyncId()} execution ${executionAsyncId()}\n`);
@@ -34,6 +33,9 @@ createHook({
 // level 2
 // after: trigger 2 execution 3
 setTimeout(() => {
-    fs.writeSync(1, `level 1\n`);
-    setTimeout(() => {fs.writeSync(1, `level 2\n`)}, 3000);
+  fs.writeSync(1, `level 1\n`);
+  setTimeout(() => {
+    console.trace(); // trace 会打印异步触发的起点位置
+    fs.writeSync(1, `level 2\n`);
+  }, 3000);
 }, 1000)

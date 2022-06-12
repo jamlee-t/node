@@ -27,6 +27,11 @@ EnvironmentOptions* PerIsolateOptions::get_per_env_options() {
 
 namespace options_parser {
 
+/////////////////////////////////////////////////////////////////
+//
+// JAMLEE: 8 个 AddOption 全部在这里实现。
+//
+/////////////////////////////////////////////////////////////////
 template <typename Options>
 void OptionsParser<Options>::AddOption(const char* name,
                                        const char* help_text,

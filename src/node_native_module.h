@@ -79,7 +79,10 @@ class NativeModuleLoader {
 
   static NativeModuleLoader instance_;
   ModuleCategories module_categories_;
+  
+  // JAMLEE: 记录 nativeModule
   NativeModuleRecordMap source_;
+
   NativeModuleCacheMap code_cache_;
   UnionBytes config_;
 

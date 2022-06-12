@@ -194,6 +194,11 @@ MaybeLocal<Value> ExecuteBootstrapper(Environment* env,
                                       std::vector<Local<String>>* parameters,
                                       std::vector<Local<Value>>* arguments) {
   EscapableHandleScope scope(env->isolate());
+  /////////////////////////////////////////////////////////////////
+  //
+  // JAMLEE: 找到js文件并编译。id 就是文件路径
+  //
+  /////////////////////////////////////////////////////////////////
   MaybeLocal<Function> maybe_fn =
       NativeModuleEnv::LookupAndCompile(env->context(), id, parameters, env);
 
@@ -385,7 +390,7 @@ void MarkBootstrapComplete(const FunctionCallbackInfo<Value>& args) {
       performance::NODE_PERFORMANCE_MILESTONE_BOOTSTRAP_COMPLETE);
 }
 
-// JAMLEE: nodejs 开始执行脚本文件。
+// JAMLEE:  1 个函数，而不是成员函数。nodejs 开始执行脚本文件。main_script_id 是“脚本模块名”，例如 "internal/main/print_help"
 MaybeLocal<Value> StartExecution(Environment* env, const char* main_script_id) {
   EscapableHandleScope scope(env->isolate());
   CHECK_NOT_NULL(main_script_id);
@@ -415,7 +420,7 @@ MaybeLocal<Value> StartExecution(Environment* env, const char* main_script_id) {
   return scope.Escape(result);
 }
 
-// JAMLEE: nodejs 开始主线程执行。
+// JAMLEE: nodejs 开始主线程执行。 1 个函数，而不是成员函数
 MaybeLocal<Value> StartMainThreadExecution(Environment* env) {
   // To allow people to extend Node in different ways, this hook allows
   // one to drop a file lib/_third_party_main.js into the build
@@ -465,6 +470,7 @@ MaybeLocal<Value> StartMainThreadExecution(Environment* env) {
   return StartExecution(env, "internal/main/eval_stdin");
 }
 
+// JAMLEE: 1 个函数。而不是成员函数
 void LoadEnvironment(Environment* env) {
   CHECK(env->is_main_thread());
   // TODO(joyeecheung): Not all of the execution modes in
@@ -664,8 +670,8 @@ void ResetStdio() {
 #endif  // __POSIX__
 }
 
-// JAMLEE: 进程全局参数
-// 调用链条: 1. Start -> InitializeOncePerProcess -> InitializeNodeWithArgs -> ProcessGlobalArgs
+// JAMLEE: 进程命令行参数解析。
+// 调用链条: Start -> InitializeOncePerProcess -> InitializeNodeWithArgs -> ProcessGlobalArgs
 int ProcessGlobalArgs(std::vector<std::string>* args,
                       std::vector<std::string>* exec_args,
                       std::vector<std::string>* errors,
@@ -749,7 +755,7 @@ int InitializeNodeWithArgs(std::vector<std::string>* argv,
   // Initialize node_start_time to get relative uptime.
   per_process::node_start_time = uv_hrtime();
 
-  // JAMLEE: 这里注册模块是指注册 internal 模块
+  // JAMLEE: 这里注册模块是指注册 internal 模块。所谓注册模块是讲模块注册到 modlist_internal (node_binding.cc)
   // Register built-in modules
   binding::RegisterBuiltinModules();
 
@@ -801,6 +807,7 @@ int InitializeNodeWithArgs(std::vector<std::string>* argv,
 #if !defined(NODE_WITHOUT_NODE_OPTIONS)
   std::string node_options;
 
+  // JAMLEE: 是否有 NODE_OPTIONS 环境变量
   if (credentials::SafeGetenv("NODE_OPTIONS", &node_options)) {
     std::vector<std::string> env_argv;
     // [0] is expected to be the program name, fill it in from the real argv.
@@ -849,6 +856,7 @@ int InitializeNodeWithArgs(std::vector<std::string>* argv,
   }
 #endif
 
+  // JAMLEE: 解析命令行配置信息
   const int exit_code = ProcessGlobalArgs(argv, exec_argv, errors, false);
   if (exit_code != 0) return exit_code;
 
@@ -941,12 +949,16 @@ InitializationResult InitializeOncePerProcess(int argc, char** argv) {
   argv = uv_setup_args(argc, argv);
 
   InitializationResult result;
+  // JAMLEE: std::vector<std::string>, Initializing from an array。
+  // https://www.geeksforgeeks.org/initialize-a-vector-in-cpp-different-ways/
+  // C++中的匿名对象是pure RValue, 因而不能作为引用传进去。匿名对象只存在于构造该对象的那行代码，离开构造匿名对象的哪行代码后立即调用析构函数。
+  // https://blog.csdn.net/u010936800/article/details/51604649
   result.args = std::vector<std::string>(argv, argv + argc);
   std::vector<std::string> errors;
 
   // This needs to run *before* V8::Initialize().
   {
-    // JAMLEE: 根据命令参数初始化 node
+    // JAMLEE: 根据命令参数初始化 node。解析了命令行参数。
     result.exit_code =
         InitializeNodeWithArgs(&(result.args), &(result.exec_args), &errors);
     for (const std::string& error : errors)
@@ -1035,7 +1047,7 @@ int Start(int argc, char** argv) {
       }
     }
 
-    // JAMLEE: 核心的 node 启动入口
+    // JAMLEE: 核心的 node 启动入口。传入的 loop 是 uv_default_loop()。
     NodeMainInstance main_instance(&params,
                                    uv_default_loop(),
                                    per_process::v8_platform.Platform(),

@@ -457,6 +457,11 @@ constexpr size_t kFsStatsBufferLength =
 
 class Environment;
 
+//////////////////////////////////////////////////////////////////
+//
+// JAMLEE: 数据关联到 isolate 中。例如 uv_loop_t
+//
+//////////////////////////////////////////////////////////////////
 class IsolateData : public MemoryRetainer {
  public:
   IsolateData(v8::Isolate* isolate,
@@ -605,6 +610,7 @@ class AsyncRequest : public MemoryRetainer {
   std::atomic_bool stopped_ {true};
 };
 
+// JAMLEE: 也就是类似于 map, dict 这类数据存储
 class KVStore {
  public:
   KVStore() = default;
@@ -755,6 +761,8 @@ class AsyncHooks : public MemoryRetainer {
   void grow_async_ids_stack();
 };
 
+// JAMLEE: 仅仅用于 async_callback_scope_depth_++ 和 async_callback_scope_depth_--。
+// 在函数的执行中自动构造和析构
 class AsyncCallbackScope {
  public:
   AsyncCallbackScope() = delete;

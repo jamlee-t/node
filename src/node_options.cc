@@ -23,6 +23,9 @@ namespace node {
 
 namespace per_process {
 Mutex cli_options_mutex;
+///////////////////////////////////////////////////////////////////
+// JAMLEE: 定义 cli_options 全局变量。在 main 函数之前初始化
+///////////////////////////////////////////////////////////////////
 std::shared_ptr<PerProcessOptions> cli_options{new PerProcessOptions()};
 }  // namespace per_process
 
@@ -210,6 +213,11 @@ void EnvironmentOptions::CheckOptions(std::vector<std::string>* errors) {
 
 namespace options_parser {
 
+//////////////////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: options 解析类
+//
+//////////////////////////////////////////////////////////////////////////////////
 class DebugOptionsParser : public OptionsParser<DebugOptions> {
  public:
   DebugOptionsParser();
@@ -226,6 +234,11 @@ class EnvironmentOptionsParser : public OptionsParser<EnvironmentOptions> {
 
 class PerIsolateOptionsParser : public OptionsParser<PerIsolateOptions> {
  public:
+  // JAMLEE: 
+  // C++11 标准引入了一个新特性："=default"函数。程序员只需在函数声明后加上“=default;”，
+  // 就可将该函数声明为 "=default"函数，编译器将为显式声明的 "=default"函数自动生成函数体。
+  // = delete 表示不能自动生成这个函数。
+  // C++函数修饰符总结 https://segmentfault.com/a/1190000018096022
   PerIsolateOptionsParser() = delete;
   explicit PerIsolateOptionsParser(const EnvironmentOptionsParser& eop);
 };
@@ -251,8 +264,44 @@ void Parse(
     args, exec_args, v8_args, options, required_env_settings, errors);
 }
 #else
+// JAMLEE: 初始化 EnvironmentOptionsParser。PerIsolateOptionsParser 和 PerProcessOptionsParser 要基于这个作为参数。
 const EnvironmentOptionsParser _eop_instance{};
 #endif  // HAVE_INSPECTOR
+
+// JAMLEE: 初始化在代码中出初始化执行构造函数
+/*
+#include <iostream>
+class Base {
+public:
+    Base() {
+        std::cout << "inited before main!" << std::endl;
+    }    
+};
+
+const Base base; // base 的构造函数就会被调用
+
+int main() {
+    // Write C++ code here
+    std::cout << "Hello world!"  << std::endl;
+    return 0;
+}
+*/
+/*
+从C++11开始，对列表初始化（List Initialization）的功能进行了扩充，可以作用于任何类型对象的初始化，至此，列表初始化方式完成了天下大一统。
+花括号列表初始化，作为C++11新标准的一部被加入到了C++中。
+
+class Test
+{
+    int a;
+    int b;
+public:    
+    C(int i, int j);    
+};    
+Test t{0,0};                    // C++11 only，相当于 Test t(0,0);    
+Test* pT=new Test{1,2};         // C++11 only，相当于 Test* pT=new Test(1,2);
+int* a = new int[3]{1,2,0};     // C++11 only
+https://blog.csdn.net/sevenjoin/article/details/81779221
+*/
 const PerIsolateOptionsParser _piop_instance{_eop_instance};
 const PerProcessOptionsParser _ppop_instance{_piop_instance};
 
@@ -316,6 +365,17 @@ DebugOptionsParser::DebugOptionsParser() {
             kAllowedInEnvironment);
 }
 
+//////////////////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: 在 main 函数之前运行了。构造函数：EnvironmentOptionsParser::EnvironmentOptionsParser
+// PerIsolateOptionsParser::PerIsolateOptionsParser 和 PerProcessOptionsParser::PerProcessOptionsParser
+// It's a pointer to member function. Specifically, read_simple is a pointer to a member function of class LASreader that takes zero arguments and returns a BOOL.
+// https://stackoverflow.com/questions/30767243/what-does-mean-in-c
+// C++ 函数指针
+// c语言函数指针的定义形式：返回类型 (*函数指针名称)(参数类型,参数类型,参数类型，…);
+// c++函数指针的定义形式：返回类型 （类名称::*函数成员名称）（参数类型，参数类型，参数类型，….);   
+// 
+//////////////////////////////////////////////////////////////////////////////////
 EnvironmentOptionsParser::EnvironmentOptionsParser() {
   AddOption("--enable-source-maps",
             "experimental Source Map V3 support",
@@ -793,6 +853,11 @@ HostPort SplitHostPort(const std::string& arg,
                     ParseAndValidatePort(arg.substr(colon + 1), errors) };
 }
 
+///////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: 获取所有命令行传入的选项
+//
+///////////////////////////////////////////////////////////////////////
 // Return a map containing all the options and their metadata as well
 // as the aliases
 void GetOptions(const FunctionCallbackInfo<Value>& args) {
@@ -918,13 +983,14 @@ void GetOptions(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(ret);
 }
 
+// JAMLEE: 在 main 函数运行之前运行。
 void Initialize(Local<Object> target,
                 Local<Value> unused,
                 Local<Context> context,
                 void* priv) {
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = env->isolate();
-  env->SetMethodNoSideEffect(target, "getOptions", GetOptions);
+  env->SetMethodNoSideEffect(target, "getOptions", GetOptions); // JAMLEE: 暴露 options 给 JS 层面。
 
   Local<Object> env_settings = Object::New(isolate);
   NODE_DEFINE_CONSTANT(env_settings, kAllowedInEnvironment);
@@ -950,4 +1016,5 @@ void Initialize(Local<Object> target,
 }  // namespace options_parser
 }  // namespace node
 
+// JAMLEE: 注册 options 模块（internal node_modules）。在 NODE_BUILTIN_STANDARD_MODULES 中确实看到有 options 模块。
 NODE_MODULE_CONTEXT_AWARE_INTERNAL(options, node::options_parser::Initialize)

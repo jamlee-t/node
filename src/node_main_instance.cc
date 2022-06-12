@@ -38,6 +38,7 @@ NodeMainInstance::NodeMainInstance(Isolate* isolate,
   SetIsolateUpForNode(isolate_, IsolateSettingCategories::kMisc);
 }
 
+// JAMLEE: 创建 NodeMainInstance 的便捷方法。
 std::unique_ptr<NodeMainInstance> NodeMainInstance::Create(
     Isolate* isolate,
     uv_loop_t* event_loop,
@@ -50,7 +51,7 @@ std::unique_ptr<NodeMainInstance> NodeMainInstance::Create(
 
 NodeMainInstance::NodeMainInstance(
     Isolate::CreateParams* params,
-    uv_loop_t* event_loop,
+    uv_loop_t* event_loop, // JAMLEE: uv_loop 结构体
     MultiIsolatePlatform* platform,
     const std::vector<std::string>& args,
     const std::vector<std::string>& exec_args,
@@ -112,7 +113,7 @@ int NodeMainInstance::Run() {
 
   /////////////////////////////////////////////////////////////////////////////////////
   //
-  // JAMLEE: 核心代码创建 env 对象
+  // JAMLEE: 核心代码创建 env 对象。初始化了 v8, libuv
   //
   /////////////////////////////////////////////////////////////////////////////////////
   int exit_code = 0;
@@ -127,7 +128,7 @@ int NodeMainInstance::Run() {
       env->async_hooks()->push_async_ids(1, 0);
       /////////////////////////////////////////////////////////////////////////////////////
       //
-      // JAMLEE: 加载 env
+      // JAMLEE: 加载 env。node::LoadEnvironment 调用 1 个函数
       //
       /////////////////////////////////////////////////////////////////////////////////////
       LoadEnvironment(env.get());

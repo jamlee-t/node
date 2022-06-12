@@ -233,6 +233,7 @@ Environment* Environment::ForAsyncHooks(AsyncHooks* hooks) {
   return ContainerOf(&Environment::async_hooks_, hooks);
 }
 
+// JAMLEE: async_callback_scope_depth_++ 和 async_callback_scope_depth_--
 inline AsyncCallbackScope::AsyncCallbackScope(Environment* env) : env_(env) {
   env_->PushAsyncCallbackScope();
 }
@@ -477,6 +478,7 @@ inline uint64_t Environment::timer_base() const {
   return timer_base_;
 }
 
+// JAMLEE: 获取系统环境变量
 inline std::shared_ptr<KVStore> Environment::env_vars() {
   return env_vars_;
 }

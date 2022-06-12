@@ -44,6 +44,7 @@ class HostPort {
   int port_;
 };
 
+// JAMLEE: options 的基类。
 class Options {
  public:
   virtual void CheckOptions(std::vector<std::string>* errors) {}
@@ -55,6 +56,7 @@ struct InspectPublishUid {
   bool http;
 };
 
+// JAMLEE: 存储 options 的对象，解析的结果放到这个对象。
 // These options are currently essentially per-Environment, but it can be nice
 // to keep them separate since they are a group of options applying to a very
 // specific part of Node. It might also make more sense for them to be
@@ -97,6 +99,7 @@ class DebugOptions : public Options {
   void CheckOptions(std::vector<std::string>* errors) override;
 };
 
+// JAMLEE: 存储 options 的对象，解析的结果放到这个对象。
 class EnvironmentOptions : public Options {
  public:
   bool abort_on_uncaught_exception = false;
@@ -264,6 +267,11 @@ enum OptionType {
   kStringList,
 };
 
+////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: 核心 OptionsParser 解析类
+//
+////////////////////////////////////////////////////////////////////
 template <typename Options>
 class OptionsParser {
  public:
@@ -427,13 +435,88 @@ class OptionsParser {
       typename OptionsParser<ChildOptions>::Implication original,
       ChildOptions* (Options::* get_child)());
 
+  // JAMLEE: 私有对象 options_。是 1 个 map。https://blog.csdn.net/jingyi130705008/article/details/82633778
+  // unordered_map<string, int>  dict; // 声明unordered_map对象
+	// 插入数据的三种方式
+	// dict.insert(pair<string,int>("apple",2));
+	// dict.insert(unordered_map<string, int>::value_type("orange",3));
+	// dict["banana"] = 6;
   std::unordered_map<std::string, OptionInfo> options_;
   std::unordered_map<std::string, std::vector<std::string>> aliases_;
   std::unordered_multimap<std::string, Implication> implications_;
 
+  // JAMLEE: 友元类，这个类是个模板类 https://blog.csdn.net/caroline_wendy/article/details/16916441
+  /*
+  #include <iostream>
+  #include <string>
+  
+  template <typename T> class Pal; // pal朋友
+  
+  class C {
+    friend class Pal<C>; // 1. "以类C实例化"的Pal类, 为C的友元
+    template <typename T> friend class Pal2; // 2. Pal2类的所有实例化, 都为C的友元
+  private:
+    void print() { std::cout << "class C" << std::endl; }
+  };
+  
+  template <typename T>
+  class C2 {
+    friend class Pal<T>; // 3. "与C2类相同实例化"的Pal类, 为C2的友元
+    // 4. Pal2类的所有实例化, 都为C2的友元, 注意模板参数(X)不能相同
+    template <typename X> friend class Pal2;
+    friend class Pal3; // 5. 普通友元
+    friend T; // 6. C++11 模板类型参数友元
+  private:
+    void print() { std::cout << "class C2" << std::endl; }
+  };
+  
+  template <typename T>
+  class Pal {
+    C myC;
+    C2<T> myC2; //必须为T
+    //C2<double> myC2; //实例化不同, 无法使用
+  public:
+    void printC() {
+      std::cout << "this is class Pal : ";
+      myC.print();
+    }
+    void printC2() {
+      std::cout << "this is class Pal : ";
+      myC2.print();
+    }
+  };
+  */
   template <typename OtherOptions>
   friend class OptionsParser;
 
+  /* JAMLEE: 友元函数,不是成员函数。GetOptions 就是友元函数
+  #include <iostream>
+  using namespace std;
+  class Box {
+    double width;
+  public:
+    friend void printWidth( Box box );
+    void setWidth( double wid );
+  };
+  // 成员函数定义
+  void Box::setWidth( double wid ) {
+      width = wid;
+  }
+
+  // 请注意：printWidth() 不是任何类的成员函数
+  void printWidth( Box box ) {
+    // 因为 printWidth() 是 Box 的友元，它可以直接访问该类的任何成员
+    cout << "Width of box : " << box.width <<endl;
+  }
+  // 程序的主函数
+  int main( ) {
+    Box box;
+    // 使用成员函数设置宽度
+    box.setWidth(10.0);
+    // 使用友元函数输出宽度
+    printWidth( box );
+    return 0;
+  }*/
   friend void GetOptions(const v8::FunctionCallbackInfo<v8::Value>& args);
 };
 

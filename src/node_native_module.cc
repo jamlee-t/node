@@ -19,12 +19,15 @@ using v8::ScriptCompiler;
 using v8::ScriptOrigin;
 using v8::String;
 
+// JAMLEE: 全局变量 instance_ 
 NativeModuleLoader NativeModuleLoader::instance_;
 
 NativeModuleLoader::NativeModuleLoader() : config_(GetConfig()) {
+  // JAMLEE: js 源码编译成了字符串编译到了 _source 中
   LoadJavaScriptSource();
 }
 
+// JAMLEE: 静态变量获取实例
 NativeModuleLoader* NativeModuleLoader::GetInstance() {
   return &instance_;
 }
@@ -47,6 +50,7 @@ Local<String> NativeModuleLoader::GetConfigString(Isolate* isolate) {
   return config_.ToStringChecked(isolate);
 }
 
+// JAMLEE: 获取 moduleids。
 std::vector<std::string> NativeModuleLoader::GetModuleIds() {
   std::vector<std::string> ids;
   ids.reserve(source_.size());

@@ -133,6 +133,7 @@ void NativeModuleEnv::CompileFunction(const FunctionCallbackInfo<Value>& args) {
   }
 }
 
+// JAMLEE: 编译 id 字符串模块。运行 js 分为两步 1. 编译 2. 运行，这里就是在运行
 // Returns Local<Function> of the compiled module if return_code_cache
 // is false (we are only compiling the function).
 // Otherwise return a Local<Object> containing the cache.

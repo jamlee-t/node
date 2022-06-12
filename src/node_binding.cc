@@ -252,11 +252,19 @@ static thread_local node_module* thread_local_modpending;
 // This is set by node::Init() which is used by embedders
 bool node_is_initialized = false;
 
+// JAMLEE: 所有的 C++ 模块最终调用这个函数注册模块自身到系统中。
 // node_module->nm_link 指向全局变量。
 extern "C" void node_module_register(void* m) {
+  // 类型转换 https://en.cppreference.com/w/cpp/language/reinterpret_cast
+  // 实现的功能就是把表达式的值强制转换为类型说明符表示的类型。除了这种强制类型转换方法外，C++还提供了四种类型转换方法，分别为
+  // static_cast<类型说明符>(表达式）
+  // dynamic_cast<类型说明符>(表达式）
+  // const_cast<类型说明符>(表达式）
+  // reinterpret_cast<类型说明符>(表达式）
+
   struct node_module* mp = reinterpret_cast<struct node_module*>(m);
 
-  if (mp->nm_flags & NM_F_INTERNAL) {
+  if (mp->nm_flags & NM_F_INTERNAL) { // 使用头插法，最终会形成一个链表
     mp->nm_link = modlist_internal;
     modlist_internal = mp;
   } else if (!node_is_initialized) {
@@ -543,6 +551,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   // coverity[leaked_storage]
 }
 
+// JAMLEE: 在 list 中寻找 name 的模块
 inline struct node_module* FindModule(struct node_module* list,
                                       const char* name,
                                       int flag) {
@@ -563,6 +572,7 @@ node_module* get_linked_module(const char* name) {
   return FindModule(modlist_linked, name, NM_F_LINKED);
 }
 
+// JAMLEE: 初始化模块
 static Local<Object> InitModule(Environment* env,
                                 node_module* mod,
                                 Local<String> module) {
@@ -656,6 +666,8 @@ void GetLinkedBinding(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(effective_exports);
 }
 
+
+// JAMLEE: _register_tcpwrap 等这样的函数注册内部模块
 // 宏函数，调用内部的 _register_<module name> 函数，例如 _register_events
 // Call built-in modules' _register_<module name> function to
 // do module registration explicitly.

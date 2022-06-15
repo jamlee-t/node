@@ -1023,7 +1023,7 @@ equality.
 ## `util.parseArgs([config])`
 
 <!-- YAML
-added: REPLACEME
+added: v18.3.0
 -->
 
 > Stability: 1 - Experimental
@@ -1094,7 +1094,7 @@ const {
   positionals
 } = parseArgs({ args, options });
 console.log(values, positionals);
-// Prints: [Object: null prototype] { foo: true, bar: 'b' } []ss
+// Prints: [Object: null prototype] { foo: true, bar: 'b' } []
 ```
 
 `util.parseArgs` is experimental and behavior may change. Join the

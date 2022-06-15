@@ -974,28 +974,6 @@ var require_util = __commonJS({
 var require_constants = __commonJS({
   "lib/fetch/constants.js"(exports2, module2) {
     "use strict";
-    var forbiddenHeaderNames = [
-      "accept-charset",
-      "accept-encoding",
-      "access-control-request-headers",
-      "access-control-request-method",
-      "connection",
-      "content-length",
-      "cookie",
-      "cookie2",
-      "date",
-      "dnt",
-      "expect",
-      "host",
-      "keep-alive",
-      "origin",
-      "referer",
-      "te",
-      "trailer",
-      "transfer-encoding",
-      "upgrade",
-      "via"
-    ];
     var corsSafeListedMethods = ["GET", "HEAD", "POST"];
     var nullBodyStatus = [101, 204, 205, 304];
     var redirectStatus = [301, 302, 303, 307, 308];
@@ -1022,7 +1000,6 @@ var require_constants = __commonJS({
       "force-cache",
       "only-if-cached"
     ];
-    var forbiddenResponseHeaderNames = ["set-cookie", "set-cookie2"];
     var requestBodyHeader = [
       "content-encoding",
       "content-language",
@@ -1044,11 +1021,8 @@ var require_constants = __commonJS({
       "xslt",
       ""
     ];
-    var corsSafeListedResponseHeaderNames = [];
     module2.exports = {
       subresource,
-      forbiddenResponseHeaderNames,
-      corsSafeListedResponseHeaderNames,
       forbiddenMethods,
       requestBodyHeader,
       referrerPolicy,
@@ -1056,7 +1030,6 @@ var require_constants = __commonJS({
       requestMode,
       requestCredentials,
       requestCache,
-      forbiddenHeaderNames,
       redirectStatus,
       corsSafeListedMethods,
       nullBodyStatus,
@@ -1442,6 +1415,20 @@ var require_util2 = __commonJS({
       assert(typeof result === "string");
       return result;
     }
+    var esIteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf([][Symbol.iterator]()));
+    function makeIterator(iterator, name) {
+      const i = {
+        next() {
+          if (Object.getPrototypeOf(this) !== i) {
+            throw new TypeError(`'next' called on an object that does not implement interface ${name} Iterator.`);
+          }
+          return iterator.next();
+        },
+        [Symbol.toStringTag]: `${name} Iterator`
+      };
+      Object.setPrototypeOf(i, esIteratorPrototype);
+      return Object.setPrototypeOf({}, i);
+    }
     module2.exports = {
       isAborted,
       isCancelled,
@@ -1471,7 +1458,8 @@ var require_util2 = __commonJS({
       isValidReasonPhrase,
       sameOrigin,
       normalizeMethod,
-      serializeJavascriptValueToJSONString
+      serializeJavascriptValueToJSONString,
+      makeIterator
     };
   }
 });
@@ -1480,7 +1468,7 @@ var require_util2 = __commonJS({
 var require_formdata = __commonJS({
   "lib/fetch/formdata.js"(exports2, module2) {
     "use strict";
-    var { isBlobLike, isFileLike, toUSVString } = require_util2();
+    var { isBlobLike, isFileLike, toUSVString, makeIterator } = require_util2();
     var { kState } = require_symbols2();
     var { File, FileLike } = require_file();
     var { Blob } = require("buffer");
@@ -1585,38 +1573,42 @@ var require_formdata = __commonJS({
       get [Symbol.toStringTag]() {
         return this.constructor.name;
       }
-      *entries() {
+      entries() {
         if (!(this instanceof _FormData)) {
           throw new TypeError("Illegal invocation");
         }
-        for (const pair of this) {
-          yield pair;
-        }
+        return makeIterator(makeIterable(this[kState], "entries"), "FormData");
       }
-      *keys() {
+      keys() {
         if (!(this instanceof _FormData)) {
           throw new TypeError("Illegal invocation");
         }
-        for (const [key] of this) {
-          yield key;
-        }
+        return makeIterator(makeIterable(this[kState], "keys"), "FormData");
       }
-      *values() {
+      values() {
         if (!(this instanceof _FormData)) {
           throw new TypeError("Illegal invocation");
         }
-        for (const [, value] of this) {
-          yield value;
-        }
+        return makeIterator(makeIterable(this[kState], "values"), "FormData");
       }
-      *[Symbol.iterator]() {
-        for (const { name, value } of this[kState]) {
-          yield [name, value];
+      forEach(callbackFn, thisArg = globalThis) {
+        if (!(this instanceof _FormData)) {
+          throw new TypeError("Illegal invocation");
+        }
+        if (arguments.length < 1) {
+          throw new TypeError(`Failed to execute 'forEach' on 'FormData': 1 argument required, but only ${arguments.length} present.`);
+        }
+        if (typeof callbackFn !== "function") {
+          throw new TypeError("Failed to execute 'forEach' on 'FormData': parameter 1 is not of type 'Function'.");
+        }
+        for (const [key, value] of this) {
+          callbackFn.apply(thisArg, [value, key, this]);
         }
       }
     };
     var FormData = _FormData;
     __publicField(FormData, "name", "FormData");
+    FormData.prototype[Symbol.iterator] = FormData.prototype.entries;
     function makeEntry(name, value, filename) {
       const entry = {
         name: null,
@@ -1624,13 +1616,24 @@ var require_formdata = __commonJS({
       };
       entry.name = name;
       if (isBlobLike(value) && !isFileLike(value)) {
-        value = value instanceof Blob ? new File([value], "blob") : new FileLike(value, "blob");
+        value = value instanceof Blob ? new File([value], "blob", value) : new FileLike(value, "blob", value);
       }
       if (isFileLike(value) && filename != null) {
-        value = value instanceof File ? new File([value], filename) : new FileLike(value, filename);
+        value = value instanceof File ? new File([value], filename, value) : new FileLike(value, filename, value);
       }
       entry.value = value;
       return entry;
+    }
+    function* makeIterable(entries, type) {
+      for (const { name, value } of entries) {
+        if (type === "entries") {
+          yield [name, value];
+        } else if (type === "values") {
+          yield value;
+        } else {
+          yield name;
+        }
+      }
     }
     module2.exports = { FormData };
   }
@@ -1649,7 +1652,7 @@ var require_body = __commonJS({
     var assert = require("assert");
     var { NotSupportedError } = require_errors();
     var { isErrored } = require_util();
-    var { isUint8Array } = require("util/types");
+    var { isUint8Array, isArrayBuffer } = require("util/types");
     var ReadableStream;
     async function* blobGen(blob) {
       if (blob.stream) {
@@ -1671,7 +1674,7 @@ var require_body = __commonJS({
       } else if (object instanceof URLSearchParams) {
         source = object.toString();
         contentType = "application/x-www-form-urlencoded;charset=UTF-8";
-      } else if (object instanceof ArrayBuffer || ArrayBuffer.isView(object)) {
+      } else if (isArrayBuffer(object) || ArrayBuffer.isView(object)) {
         if (object instanceof DataView) {
           object = object.buffer;
         }
@@ -1907,7 +1910,7 @@ var require_request = __commonJS({
       }, handler) {
         if (typeof path !== "string") {
           throw new InvalidArgumentError("path must be a string");
-        } else if (path[0] !== "/" && !(path.startsWith("http://") || path.startsWith("https://"))) {
+        } else if (path[0] !== "/" && !(path.startsWith("http://") || path.startsWith("https://")) && method !== "CONNECT") {
           throw new InvalidArgumentError("path must be an absolute URL or start with a slash");
         }
         if (typeof method !== "string") {
@@ -1930,12 +1933,12 @@ var require_request = __commonJS({
           this.body = null;
         } else if (util.isStream(body)) {
           this.body = body;
-        } else if (body instanceof DataView) {
-          this.body = body.buffer.byteLength ? Buffer.from(body.buffer) : null;
-        } else if (body instanceof ArrayBuffer || ArrayBuffer.isView(body)) {
-          this.body = body.byteLength ? Buffer.from(body) : null;
         } else if (util.isBuffer(body)) {
           this.body = body.byteLength ? body : null;
+        } else if (ArrayBuffer.isView(body)) {
+          this.body = body.buffer.byteLength ? Buffer.from(body.buffer, body.byteOffset, body.byteLength) : null;
+        } else if (body instanceof ArrayBuffer) {
+          this.body = body.byteLength ? Buffer.from(body) : null;
         } else if (typeof body === "string") {
           this.body = body.length ? Buffer.from(body) : null;
         } else if (util.isFormDataLike(body) || util.isIterable(body) || util.isBlobLike(body)) {
@@ -2248,7 +2251,7 @@ var require_connect = __commonJS({
       const sessionCache = /* @__PURE__ */ new Map();
       timeout = timeout == null ? 1e4 : timeout;
       maxCachedSessions = maxCachedSessions == null ? 100 : maxCachedSessions;
-      return function connect({ hostname, host, protocol, port, servername }, callback) {
+      return function connect({ hostname, host, protocol, port, servername, httpSocket }, callback) {
         let socket;
         if (protocol === "https:") {
           if (!tls) {
@@ -2263,6 +2266,7 @@ var require_connect = __commonJS({
             ...options,
             servername,
             session,
+            socket: httpSocket,
             port: port || 443,
             host: hostname
           });
@@ -2281,6 +2285,7 @@ var require_connect = __commonJS({
             }
           });
         } else {
+          assert(!httpSocket, "httpSocket can only be sent on TLS update");
           socket = net.connect({
             highWaterMark: 64 * 1024,
             ...options,
@@ -3346,6 +3351,8 @@ var require_client = __commonJS({
         } else if (socket[kReset] && client[kRunning] === 0) {
           util.destroy(socket, new InformationalError("reset"));
           return constants.ERROR.PAUSED;
+        } else if (client[kPipelining] === 1) {
+          setImmediate(resume, client);
         } else {
           resume(client);
         }
@@ -4230,10 +4237,7 @@ var require_headers = __commonJS({
     var { kHeadersList } = require_symbols();
     var { kGuard } = require_symbols2();
     var { kEnumerableProperty } = require_util();
-    var {
-      forbiddenHeaderNames,
-      forbiddenResponseHeaderNames
-    } = require_constants();
+    var { makeIterator } = require_util2();
     var kHeadersMap = Symbol("headers map");
     var kHeadersSortedMap = Symbol("headers map sorted");
     function normalizeAndValidateHeaderName(name) {
@@ -4277,20 +4281,6 @@ var require_headers = __commonJS({
         throw TypeError();
       }
     }
-    var esIteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf([][Symbol.iterator]()));
-    function makeHeadersIterator(iterator) {
-      const i = {
-        next() {
-          if (Object.getPrototypeOf(this) !== i) {
-            throw new TypeError("'next' called on an object that does not implement interface Headers Iterator.");
-          }
-          return iterator.next();
-        },
-        [Symbol.toStringTag]: "Headers Iterator"
-      };
-      Object.setPrototypeOf(i, esIteratorPrototype);
-      return Object.setPrototypeOf({}, i);
-    }
     var HeadersList = class {
       constructor(init) {
         if (init instanceof HeadersList) {
@@ -4300,6 +4290,10 @@ var require_headers = __commonJS({
           this[kHeadersMap] = new Map(init);
           this[kHeadersSortedMap] = null;
         }
+      }
+      clear() {
+        this[kHeadersMap].clear();
+        this[kHeadersSortedMap] = null;
       }
       append(name, value) {
         this[kHeadersSortedMap] = null;
@@ -4363,14 +4357,9 @@ var require_headers = __commonJS({
         if (arguments.length < 2) {
           throw new TypeError(`Failed to execute 'append' on 'Headers': 2 arguments required, but only ${arguments.length} present.`);
         }
-        const normalizedName = normalizeAndValidateHeaderName(String(name));
         if (this[kGuard] === "immutable") {
           throw new TypeError("immutable");
-        } else if (this[kGuard] === "request" && forbiddenHeaderNames.includes(normalizedName)) {
-          return;
         } else if (this[kGuard] === "request-no-cors") {
-        } else if (this[kGuard] === "response" && forbiddenResponseHeaderNames.includes(normalizedName)) {
-          return;
         }
         return this[kHeadersList].append(String(name), String(value));
       }
@@ -4381,14 +4370,9 @@ var require_headers = __commonJS({
         if (arguments.length < 1) {
           throw new TypeError(`Failed to execute 'delete' on 'Headers': 1 argument required, but only ${arguments.length} present.`);
         }
-        const normalizedName = normalizeAndValidateHeaderName(String(name));
         if (this[kGuard] === "immutable") {
           throw new TypeError("immutable");
-        } else if (this[kGuard] === "request" && forbiddenHeaderNames.includes(normalizedName)) {
-          return;
         } else if (this[kGuard] === "request-no-cors") {
-        } else if (this[kGuard] === "response" && forbiddenResponseHeaderNames.includes(normalizedName)) {
-          return;
         }
         return this[kHeadersList].delete(String(name));
       }
@@ -4419,11 +4403,7 @@ var require_headers = __commonJS({
         }
         if (this[kGuard] === "immutable") {
           throw new TypeError("immutable");
-        } else if (this[kGuard] === "request" && forbiddenHeaderNames.includes(String(name).toLocaleLowerCase())) {
-          return;
         } else if (this[kGuard] === "request-no-cors") {
-        } else if (this[kGuard] === "response" && forbiddenResponseHeaderNames.includes(String(name).toLocaleLowerCase())) {
-          return;
         }
         return this[kHeadersList].set(String(name), String(value));
       }
@@ -4435,19 +4415,19 @@ var require_headers = __commonJS({
         if (!(this instanceof Headers)) {
           throw new TypeError("Illegal invocation");
         }
-        return makeHeadersIterator(this[kHeadersSortedMap].keys());
+        return makeIterator(this[kHeadersSortedMap].keys(), "Headers");
       }
       values() {
         if (!(this instanceof Headers)) {
           throw new TypeError("Illegal invocation");
         }
-        return makeHeadersIterator(this[kHeadersSortedMap].values());
+        return makeIterator(this[kHeadersSortedMap].values(), "Headers");
       }
       entries() {
         if (!(this instanceof Headers)) {
           throw new TypeError("Illegal invocation");
         }
-        return makeHeadersIterator(this[kHeadersSortedMap].entries());
+        return makeIterator(this[kHeadersSortedMap].entries(), "Headers");
       }
       forEach(callbackFn, thisArg = globalThis) {
         if (!(this instanceof Headers)) {
@@ -4504,9 +4484,7 @@ var require_response = __commonJS({
     var { responseURL, isValidReasonPhrase, toUSVString, isCancelled, isAborted, serializeJavascriptValueToJSONString } = require_util2();
     var {
       redirectStatus,
-      nullBodyStatus,
-      forbiddenResponseHeaderNames,
-      corsSafeListedResponseHeaderNames
+      nullBodyStatus
     } = require_constants();
     var { kState, kHeaders, kGuard, kRealm } = require_symbols2();
     var { kHeadersList } = require_symbols();
@@ -4724,36 +4702,16 @@ var require_response = __commonJS({
         }
       });
     }
-    function makeFilteredHeadersList(headersList, filter) {
-      return new Proxy(headersList, {
-        get(target, prop) {
-          if (prop === "get" || prop === "has") {
-            const defaultReturn = prop === "has" ? false : null;
-            return (name) => filter(name) ? target[prop](name) : defaultReturn;
-          } else if (prop === Symbol.iterator) {
-            return function* () {
-              for (const entry of target) {
-                if (filter(entry[0])) {
-                  yield entry;
-                }
-              }
-            };
-          } else {
-            return target[prop];
-          }
-        }
-      });
-    }
     function filterResponse(response, type) {
       if (type === "basic") {
         return makeFilteredResponse(response, {
           type: "basic",
-          headersList: makeFilteredHeadersList(response.headersList, (name) => !forbiddenResponseHeaderNames.includes(name.toLowerCase()))
+          headersList: response.headersList
         });
       } else if (type === "cors") {
         return makeFilteredResponse(response, {
           type: "cors",
-          headersList: makeFilteredHeadersList(response.headersList, (name) => !corsSafeListedResponseHeaderNames.includes(name))
+          headersList: response.headersList
         });
       } else if (type === "opaque") {
         return makeFilteredResponse(response, {
@@ -4768,7 +4726,7 @@ var require_response = __commonJS({
           type: "opaqueredirect",
           status: 0,
           statusText: "",
-          headersList: makeFilteredHeadersList(response.headersList, () => false),
+          headersList: [],
           body: null
         });
       } else {
@@ -5019,8 +4977,8 @@ var require_request2 = __commonJS({
           }
         }
         this[kHeaders] = new Headers();
-        this[kHeaders][kGuard] = "request";
         this[kHeaders][kHeadersList] = request.headersList;
+        this[kHeaders][kGuard] = "request";
         this[kHeaders][kRealm] = this[kRealm];
         if (mode === "no-cors") {
           if (!corsSafeListedMethods.includes(request.method)) {
@@ -5029,18 +4987,17 @@ var require_request2 = __commonJS({
           this[kHeaders][kGuard] = "request-no-cors";
         }
         if (Object.keys(init).length !== 0) {
-          let headers = new Headers(this.headers);
+          let headers = new Headers(this[kHeaders]);
           if (init.headers !== void 0) {
             headers = init.headers;
           }
-          this[kState].headersList = new HeadersList();
-          this[kHeaders][kHeadersList] = this[kState].headersList;
+          this[kHeaders][kHeadersList].clear();
           if (headers.constructor.name === "Headers") {
-            for (const [key, val] of headers[kHeadersList] || headers) {
+            for (const [key, val] of headers) {
               this[kHeaders].append(key, val);
             }
           } else {
-            fillHeaders(this[kState].headersList, headers);
+            fillHeaders(this[kHeaders], headers);
           }
         }
         const inputBody = input instanceof Request ? input[kState].body : null;
@@ -6012,7 +5969,7 @@ var require_fetch = __commonJS({
       if (actualResponse.status !== 303 && request.body != null && request.body.source == null) {
         return makeNetworkError();
       }
-      if ([301, 302].includes(actualResponse.status) && request.method === "POST" || actualResponse.status === 303 && !["GET", "HEADER"].includes(request.method)) {
+      if ([301, 302].includes(actualResponse.status) && request.method === "POST" || actualResponse.status === 303 && !["GET", "HEAD"].includes(request.method)) {
         request.method = "GET";
         request.body = null;
         for (const headerName of requestBodyHeader) {

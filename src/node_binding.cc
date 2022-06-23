@@ -591,6 +591,11 @@ static void ThrowIfNoSuchModule(Environment* env, const char* module_v) {
   env->ThrowError(errmsg);
 }
 
+//////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: 获取1个对象。
+//
+//////////////////////////////////////////////////////////////////////
 void GetInternalBinding(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
@@ -600,6 +605,7 @@ void GetInternalBinding(const FunctionCallbackInfo<Value>& args) {
   node::Utf8Value module_v(env->isolate(), module);
   Local<Object> exports;
 
+  // JAMLEE: 查找或返回 C++ 内部模块 
   node_module* mod = get_internal_module(*module_v);
   if (mod != nullptr) {
     exports = InitModule(env, mod, module);

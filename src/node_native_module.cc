@@ -27,7 +27,7 @@ NativeModuleLoader::NativeModuleLoader() : config_(GetConfig()) {
   LoadJavaScriptSource();
 }
 
-// JAMLEE: 静态变量获取实例
+// JAMLEE: 静态变量，获取实例（单例模式）
 NativeModuleLoader* NativeModuleLoader::GetInstance() {
   return &instance_;
 }
@@ -77,6 +77,7 @@ void NativeModuleLoader::InitializeModuleCategories() {
     "internal/main/"
   };
 
+  // 不能被 require 的模块 id 前缀
   module_categories_.cannot_be_required = std::set<std::string> {
 #if !HAVE_INSPECTOR
       "inspector",
@@ -129,20 +130,24 @@ void NativeModuleLoader::InitializeModuleCategories() {
   module_categories_.is_initialized = true;
 }
 
+// JAMLEE: 获取不能被 require 的模块 id，是个字符串数组。
 const std::set<std::string>& NativeModuleLoader::GetCannotBeRequired() {
   InitializeModuleCategories();
   return module_categories_.cannot_be_required;
 }
 
+// JAMLEE: 获取能被 require 的模块 id，是个字符串数组。
 const std::set<std::string>& NativeModuleLoader::GetCanBeRequired() {
   InitializeModuleCategories();
   return module_categories_.can_be_required;
 }
 
+// JAMLEE: 判断该模块是否能够被 require
 bool NativeModuleLoader::CanBeRequired(const char* id) {
   return GetCanBeRequired().count(id) == 1;
 }
 
+// JAMLEE: 判断该模块是否是不能够被 require
 bool NativeModuleLoader::CannotBeRequired(const char* id) {
   return GetCannotBeRequired().count(id) == 1;
 }
@@ -177,6 +182,11 @@ MaybeLocal<Function> NativeModuleLoader::CompileAsModule(
   return LookupAndCompile(context, id, &parameters, result);
 }
 
+//////////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: 静态方法。将 JS 文件编译为 1 个函数。这里会有编译缓存可以使用。
+//
+//////////////////////////////////////////////////////////////////////////
 // Returns Local<Function> of the compiled module if return_code_cache
 // is false (we are only compiling the function).
 // Otherwise return a Local<Object> containing the cache.
@@ -188,15 +198,19 @@ MaybeLocal<Function> NativeModuleLoader::LookupAndCompile(
   Isolate* isolate = context->GetIsolate();
   EscapableHandleScope scope(isolate);
 
+  // 从 source 中查询 id。source 是 NativeModuleRecordMap 类对象，也就是 std::map<std::string, UnionBytes>
   const auto source_it = source_.find(id);
   CHECK_NE(source_it, source_.end());
   Local<String> source = source_it->second.ToStringChecked(isolate);
 
+  // id 后面添加 .js 后缀
   std::string filename_s = id + std::string(".js");
   Local<String> filename =
       OneByteString(isolate, filename_s.c_str(), filename_s.size());
   Local<Integer> line_offset = Integer::New(isolate, 0);
   Local<Integer> column_offset = Integer::New(isolate, 0);
+
+  // 脚本源？说明这个脚本来自哪里。
   ScriptOrigin origin(filename, line_offset, column_offset, True(isolate));
 
   Mutex::ScopedLock lock(code_cache_mutex_);
@@ -217,6 +231,7 @@ MaybeLocal<Function> NativeModuleLoader::LookupAndCompile(
                 : ScriptCompiler::kEagerCompile;
   ScriptCompiler::Source script_source(source, origin, cached_data);
 
+  // ScriptCompiler::CompileFunctionInContext 是调用 v8 的函数编译出 1 个函数（指定 context）。
   MaybeLocal<Function> maybe_fun =
       ScriptCompiler::CompileFunctionInContext(context,
                                                &script_source,

@@ -19,6 +19,8 @@ class NativeModuleEnv {
                          v8::Local<v8::Context> context,
                          void* priv);
 
+  // JAMLEE: 静态函数。用于将 JS 文件编译为函数。
+  // parameters: 给 JS 文件作为函数时，设置上参数（名称和数量）。
   static v8::MaybeLocal<v8::Function> LookupAndCompile(
       v8::Local<v8::Context> context,
       const char* id,

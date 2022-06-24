@@ -189,16 +189,20 @@ void SignalExit(int signo) {
   raise(signo);
 }
 
+// JAMLEE:  独立函数，也是执行 JS 文件的工具函数
+// 执行 internal/bootstrap/loaders， internal/bootstrap/node 这样的 JS 文件。
+// parameters 是函数参数名称，arguments 是函数参数。JS 文件会当做函数来运行。
 MaybeLocal<Value> ExecuteBootstrapper(Environment* env,
                                       const char* id,
                                       std::vector<Local<String>>* parameters,
                                       std::vector<Local<Value>>* arguments) {
   EscapableHandleScope scope(env->isolate());
-  /////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
   //
-  // JAMLEE: 找到js文件并编译。id 就是文件路径
+  // JAMLEE: 找到js文件并编译成1个函数。id 就是文件路径, 例如 'internal/bootstrap/loaders
+  // 函数有参数：parameters
   //
-  /////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////
   MaybeLocal<Function> maybe_fn =
       NativeModuleEnv::LookupAndCompile(env->context(), id, parameters, env);
 
@@ -273,16 +277,18 @@ void Environment::InitializeDiagnostics() {
 #endif
 }
 
-// JAMLEE: 执行 js 文件写的加载脚本
+// JAMLEE: 执行 js 文件写的加载脚本，internal/bootstrap/loaders
 MaybeLocal<Value> Environment::BootstrapInternalLoaders() {
   EscapableHandleScope scope(isolate_);
 
+  // 参数名称
   // Create binding loaders
   std::vector<Local<String>> loaders_params = {
       process_string(),
       FIXED_ONE_BYTE_STRING(isolate_, "getLinkedBinding"),
       FIXED_ONE_BYTE_STRING(isolate_, "getInternalBinding"),
       primordials_string()};
+  // 参数的值
   std::vector<Local<Value>> loaders_args = {
       process_object(),
       NewFunctionTemplate(binding::GetLinkedBinding)
@@ -315,12 +321,14 @@ MaybeLocal<Value> Environment::BootstrapInternalLoaders() {
   return scope.Escape(loader_exports);
 }
 
-// JAMLEE: 启动 nodejs
+// JAMLEE: 执行 internal/bootstrap/node JS文件。
 MaybeLocal<Value> Environment::BootstrapNode() {
   EscapableHandleScope scope(isolate_);
 
   Local<Object> global = context()->Global();
   // TODO(joyeecheung): this can be done in JS land now.
+
+  // 设置 global 对象，暴露给 JS 代码。
   global->Set(context(), FIXED_ONE_BYTE_STRING(isolate_, "global"), global)
       .Check();
 
@@ -341,6 +349,7 @@ MaybeLocal<Value> Environment::BootstrapNode() {
       Boolean::New(isolate_, owns_process_state()),
       primordials()};
 
+  // this 参数表示 env 对象。internal/bootstrap/node 当做函数执行，传入参数 isMainThread 等
   MaybeLocal<Value> result = ExecuteBootstrapper(
       this, "internal/bootstrap/node", &node_params, &node_args);
 
@@ -357,16 +366,18 @@ MaybeLocal<Value> Environment::BootstrapNode() {
   return scope.EscapeMaybe(result);
 }
 
-// JAMLEE: 启动 nodejs
+// JAMLEE: 执行 internal/bootstrap/loader, internal/bootstrap/node JS 文件, 两个 JS 文件会作为 函数运行。
 MaybeLocal<Value> Environment::RunBootstrapping() {
   EscapableHandleScope scope(isolate_);
 
   CHECK(!has_run_bootstrapping_code());
 
+  // 文件：internal/bootstrap/loader
   if (BootstrapInternalLoaders().IsEmpty()) {
     return MaybeLocal<Value>();
   }
 
+  // 文件：internal/bootstrap/node
   Local<Value> result;
   if (!BootstrapNode().ToLocal(&result)) {
     return MaybeLocal<Value>();
@@ -378,6 +389,7 @@ MaybeLocal<Value> Environment::RunBootstrapping() {
   CHECK(req_wrap_queue()->IsEmpty());
   CHECK(handle_wrap_queue()->IsEmpty());
 
+  // 是否已经执行了 bootstrap 的代码
   set_has_run_bootstrapping_code(true);
 
   return scope.Escape(result);
@@ -390,7 +402,8 @@ void MarkBootstrapComplete(const FunctionCallbackInfo<Value>& args) {
       performance::NODE_PERFORMANCE_MILESTONE_BOOTSTRAP_COMPLETE);
 }
 
-// JAMLEE:  1 个函数，而不是成员函数。nodejs 开始执行脚本文件。main_script_id 是“脚本模块名”，例如 "internal/main/print_help"
+// JAMLEE:  1 个函数，而不是成员函数。nodejs 开始执行脚本文件。
+// main_script_id 是"脚本模块名"，例如 "internal/main/print_help"
 MaybeLocal<Value> StartExecution(Environment* env, const char* main_script_id) {
   EscapableHandleScope scope(env->isolate());
   CHECK_NOT_NULL(main_script_id);

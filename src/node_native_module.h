@@ -17,6 +17,8 @@ class PerProcessTest;
 namespace node {
 namespace native_module {
 
+// JAMLEE: 模块（1个js文件）会编译为函数。模块的信息注册在 NativeModuleRecordMap，模块的编译缓存放在 NativeModuleCacheMap。
+// 编译时会把缓存一并传给 v8。
 using NativeModuleRecordMap = std::map<std::string, UnionBytes>;
 using NativeModuleCacheMap =
     std::unordered_map<std::string,
@@ -80,7 +82,7 @@ class NativeModuleLoader {
   static NativeModuleLoader instance_;
   ModuleCategories module_categories_;
   
-  // JAMLEE: 记录 nativeModule
+  // JAMLEE: 记录 nativeModule。C++ 的模块都会注册到这里
   NativeModuleRecordMap source_;
 
   NativeModuleCacheMap code_cache_;

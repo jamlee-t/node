@@ -244,6 +244,7 @@ std::unique_ptr<Environment> NodeMainInstance::CreateMainEnvironment(
     return env;
   }
 
+  // JAMLEE: 执行 internal/bootstrap/loader, internal/bootstrap/node JS 文件
   if (env->RunBootstrapping().IsEmpty()) {
     *exit_code = 1;
   }

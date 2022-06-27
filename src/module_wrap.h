@@ -24,6 +24,7 @@ enum HostDefinedOptions : int {
   kLength = 10,
 };
 
+// JAMLEE: JS 层面的模块在 C++ 层面的表示。
 class ModuleWrap : public BaseObject {
  public:
   static void Initialize(v8::Local<v8::Object> target,

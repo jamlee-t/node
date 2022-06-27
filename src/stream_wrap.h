@@ -33,6 +33,11 @@ namespace node {
 
 class Environment;
 
+///////////////////////////////////////////////////////////
+//
+// JAMLEE: 封装 libuv 的 stream 
+//
+///////////////////////////////////////////////////////////
 class LibuvStreamWrap : public HandleWrap, public StreamBase {
  public:
   static void Initialize(v8::Local<v8::Object> target,

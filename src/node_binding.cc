@@ -89,6 +89,11 @@
   V(worker)                                                                    \
   V(zlib)
 
+/////////////////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: 对 BUILTIN 模块统一做操作 V
+//
+/////////////////////////////////////////////////////////////////////////////////
 #define NODE_BUILTIN_MODULES(V)                                                \
   NODE_BUILTIN_STANDARD_MODULES(V)                                             \
   NODE_BUILTIN_OPENSSL_MODULES(V)                                              \
@@ -97,6 +102,7 @@
   NODE_BUILTIN_PROFILER_MODULES(V)                                             \
   NODE_BUILTIN_DTRACE_MODULES(V)
 
+// JAMLEE: 不使用 __attribute__((constructor))。而是手动注册 binding::RegisterBuiltinModules()
 // This is used to load built-in modules. Instead of using
 // __attribute__((constructor)), we call the _register_<modname>
 // function for each built-in modules explicitly in
@@ -242,8 +248,13 @@ using v8::Object;
 using v8::String;
 using v8::Value;
 
+//////////////////////////////////////////////////////////////////
+//
+// JAMLEE: 重要全局变量，包含所有的 C++ 模块的链表
 // modlist_internal 内部的模块列表 C++
-// modlist_linked   原生的模块列表 JS
+// modlist_linked   原生的模块列表 C++ addon
+//
+//////////////////////////////////////////////////////////////////
 // Globals per process
 static node_module* modlist_internal;
 static node_module* modlist_linked;
@@ -672,8 +683,11 @@ void GetLinkedBinding(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(effective_exports);
 }
 
-
-// JAMLEE: _register_tcpwrap 等这样的函数注册内部模块
+/////////////////////////////////////////////////////////////////////////////
+//
+// JAMLEE: _register_tcpwrap 等这样的函数注册内部模块。所有的内部模块在这里被循环调用
+//
+/////////////////////////////////////////////////////////////////////////////
 // 宏函数，调用内部的 _register_<module name> 函数，例如 _register_events
 // Call built-in modules' _register_<module name> function to
 // do module registration explicitly.

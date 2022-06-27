@@ -757,8 +757,14 @@ int ProcessGlobalArgs(std::vector<std::string>* args,
 
 static std::atomic_bool init_called{false};
 
+///////////////////////////////////////////////////////////////////////////
+//
 // JAMLEE：参数初始化 node
 // 调用链条: 1. Start -> InitializeOncePerProcess -> InitializeNodeWithArgs
+// 1. 注册内部 C++ 模块。
+// 2. 
+//
+////////////////////////////////////////////////////////////////////////////
 int InitializeNodeWithArgs(std::vector<std::string>* argv,
                            std::vector<std::string>* exec_argv,
                            std::vector<std::string>* errors) {

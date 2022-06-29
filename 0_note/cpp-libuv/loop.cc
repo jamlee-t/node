@@ -25,4 +25,16 @@ std::shared_ptr<Loop> Loop::getDefault() {
   return loop;
 };
 
+void Loop::TCPListen() {
+  printf("Now quitting.\n");
+  uv_run(loop.get(), UV_RUN_DEFAULT);
+  uv_loop_close(loop.get());
+}
+
+void Loop::Run() {
+  printf("Now quitting.\n");
+  uv_run(loop.get(), UV_RUN_DEFAULT);
+  uv_loop_close(loop.get());
+}
+
 }  // namespace jam

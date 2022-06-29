@@ -18,6 +18,10 @@ class Loop final {
   static std::shared_ptr<Loop> getDefault();
   Loop(std::unique_ptr<uv_loop_t, Deleter> ptr) noexcept;
 
+  // 监听TCP端口
+  void TCPListen();
+  void Run();
+
  private:
   std::unique_ptr<uv_loop_t, Deleter> loop;
 };

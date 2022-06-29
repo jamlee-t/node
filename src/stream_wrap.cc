@@ -50,6 +50,15 @@ using v8::ReadOnly;
 using v8::Signature;
 using v8::Value;
 
+// JAMLEE: lib/internal/stream_base_commons.js
+// const {
+//   WriteWrap,
+//   kReadBytesOrError,
+//   kArrayBufferOffset,
+//   kBytesWritten,
+//   kLastWriteWasAsync,
+//   streamBaseState
+// } = internalBinding('stream_wrap');
 
 void LibuvStreamWrap::Initialize(Local<Object> target,
                                  Local<Value> unused,

@@ -75,7 +75,29 @@ class ShutdownWrap : public StreamReq {
   void OnDone(int status) override;
 };
 
-// JAMLEE: 在 js 层面定义 1 个写入请求。
+// JAMLEE: 封装 1 个写请求。JS 的写入会封装成 WriteWrap 给 C++。
+// 来自: lib/internal/stream_base_commons.js
+// function createWriteWrap(handle) {
+//   const req = new WriteWrap();
+
+//   req.handle = handle;
+//   req.oncomplete = onWriteComplete; // libuv 写入完毕后调用。
+//   req.async = false;
+//   req.bytes = 0;
+//   req.buffer = null;
+
+//   return req;
+// }
+
+// 这里看到 Wrap 这个单词的含义，就是 Wrap 给到 JS 访问，称作 Wrap。
+// const {
+//   WriteWrap,
+//   kReadBytesOrError,
+//   kArrayBufferOffset,
+//   kBytesWritten,
+//   kLastWriteWasAsync,
+//   streamBaseState
+// } = internalBinding('stream_wrap');
 class WriteWrap : public StreamReq {
  public:
   void SetAllocatedStorage(AllocatedBuffer&& storage);
@@ -91,7 +113,8 @@ class WriteWrap : public StreamReq {
   AllocatedBuffer storage_;
 };
 
-// JAMLEE: 抽象类, 定义 C++ streams。
+// JAMLEE: 抽象类, 定义 C++ stream 提交事件（例如 EmitRead）时, 对应的事件处理类。
+// StreamResource关联这个类，StreamResource 通过这个类在 EmitRead 时，把数据上传至 JS 层。
 // This is the generic interface for objects that control Node.js' C++ streams.
 // For example, the default `EmitToJSStreamListener` emits a stream's data
 // as Buffers in JS, or `TLSWrap` reads and decrypts data from a stream.
@@ -175,7 +198,7 @@ class ReportWritesToJSStreamListener : public StreamListener {
 };
 
 
-// JAMLEE: libuv 有数据可以读了，通知到 nodejs 的 stream 中。
+// JAMLEE: StreamResource的事件 Listener。libuv 有数据可以读了，通知到 nodejs 的 stream 中。
 // A default emitter that just pushes data chunks as Buffer instances to
 // JS land via the handle’s .ondata method.
 class EmitToJSStreamListener : public ReportWritesToJSStreamListener {
@@ -185,6 +208,7 @@ class EmitToJSStreamListener : public ReportWritesToJSStreamListener {
 };
 
 
+// JAMLEE: StreamResource的事件 Listener。
 // An alternative listener that uses a custom, user-provided buffer
 // for reading data.
 class CustomBufferJSListener : public ReportWritesToJSStreamListener {
@@ -200,7 +224,7 @@ class CustomBufferJSListener : public ReportWritesToJSStreamListener {
 };
 
 
-// JAMLEE: C++ stream 对象。
+// JAMLEE: C++ stream 对象。添加 StreamListener 给 StreamResource。例如 EmitRead 方法触发 Read 事件给添加的 Listen。
 // A generic stream, comparable to JS land’s `Duplex` streams.
 // A stream is always controlled through one `StreamListener` instance.
 class StreamResource {
@@ -278,11 +302,13 @@ class StreamResource {
   friend class StreamListener;
 };
 
-// JAMLEE: StreamBase 定义 C++ Stream 的基础类。
+// JAMLEE: StreamBase 定义 C++ Stream 的基础类。JS 层把 C++ 的 stream 称为 handle。
+// 里面定义了供 JS 层调用的方法: ReadStartJS、Writev ....
 class StreamBase : public StreamResource {
  public:
   // 0 is reserved for the BaseObject pointer.
   static constexpr int kStreamBaseField = 1;
+  // JAMLEE: kOnReadFunctionField 用于存储【低层资源】（例如在 js 中的 socket.handle）的 onread 方法。
   static constexpr int kOnReadFunctionField = 2;
   static constexpr int kStreamBaseFieldCount = 3;
 
@@ -296,6 +322,7 @@ class StreamBase : public StreamResource {
 
   enum StreamBaseJSChecks { DONT_SKIP_NREAD_CHECKS, SKIP_NREAD_CHECKS };
 
+  // JAMLEE: C++ 层调用 JS 层给 handle 赋值的 1 个 onRead 函数
   v8::MaybeLocal<v8::Value> CallJSOnreadMethod(
       ssize_t nread,
       v8::Local<v8::ArrayBuffer> ab,
@@ -404,7 +431,7 @@ class SimpleShutdownWrap : public ShutdownWrap, public OtherBase {
   SET_SELF_SIZE(SimpleShutdownWrap)
 };
 
-// JAMLEE: 包装 stream write 类。
+// JAMLEE: WriteReq。
 template <typename OtherBase>
 class SimpleWriteWrap : public WriteWrap, public OtherBase {
  public:

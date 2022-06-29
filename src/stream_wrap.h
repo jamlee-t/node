@@ -35,7 +35,7 @@ class Environment;
 
 ///////////////////////////////////////////////////////////
 //
-// JAMLEE: 封装 libuv 的 stream 
+// JAMLEE: 封装 libuv 的 stream。提供函数给 JS层调用，所谓 *Wrap 就是提供给 JS 调用。
 //
 ///////////////////////////////////////////////////////////
 class LibuvStreamWrap : public HandleWrap, public StreamBase {

@@ -298,7 +298,12 @@ int StreamBase::WriteString(const FunctionCallbackInfo<Value>& args) {
   return res.err;
 }
 
-
+/////////////////////////////////////////////////////////////
+//
+// JAMLEE: C++ 层调用 JS 层给 handle 赋值的 1 个 onRead 函数（例如: lib/internal/stream_base_commons.js:onStreamRead）
+// CallJSOnreadMethod 会调用这个函数
+//
+/////////////////////////////////////////////////////////////
 MaybeLocal<Value> StreamBase::CallJSOnreadMethod(ssize_t nread,
                                                  Local<ArrayBuffer> ab,
                                                  size_t offset,

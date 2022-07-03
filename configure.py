@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 
 import json
@@ -59,6 +60,11 @@ valid_intl_modes = ('none', 'small-icu', 'full-icu', 'system-icu')
 with open ('tools/icu/icu_versions.json') as f:
   icu_versions = json.load(f)
 
+################################################################################
+#
+# JAMLEE: 命令行选项解析
+#
+################################################################################
 # create option groups
 shared_optgroup = optparse.OptionGroup(parser, "Shared libraries",
     "Flags that allows you to control whether you want to build against "
@@ -605,6 +611,9 @@ options.prefix = os.path.expanduser(options.prefix or '')
 # set up auto-download list
 auto_downloads = nodedownload.parse(options.download_list)
 
+#############################################################################
+# JAMLEE: 命令参数解析完毕
+#############################################################################
 
 def error(msg):
   prefix = '\033[1m\033[31mERROR\033[0m' if os.isatty(1) else 'ERROR'
@@ -1599,6 +1608,9 @@ def make_bin_override():
 
   return bin_override
 
+#############################################################################
+# JAMLEE: 生成 output。output 输出文件为 config.gypi
+#############################################################################
 output = {
   'variables': {},
   'include_dirs': [],
@@ -1669,6 +1681,9 @@ write('config.status', '#!/bin/sh\nset -x\nexec ./configure ' +
 os.chmod('config.status', 0o775)
 
 
+#############################################################################
+# JAMLEE: 生成 config。config 输出文件为 config.mk
+#############################################################################
 config = {
   'BUILDTYPE': 'Debug' if options.debug else 'Release',
   'NODE_TARGET_TYPE': variables['node_target_type'],
@@ -1697,7 +1712,7 @@ if bin_override:
 write('config.mk', do_not_edit + config_str)
 
 
-
+# JAMLEE: 生成 gyp 参数，传给 run_gyp。flavor 是操作系统名
 gyp_args = ['--no-parallel', '-Dconfiguring_node=1']
 
 if options.use_ninja:

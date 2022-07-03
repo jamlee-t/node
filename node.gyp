@@ -1,5 +1,6 @@
 {
   'variables': {
+    # JAMLEE: Providing Default Values for Variables (%)。运行时没有定义这个些变量才使用这里的定义。https://chromium.googlesource.com/external/gyp/+/refs/heads/md-pages/docs/InputFormatReference.md#providing-default-values-for-variables
     'v8_use_siphash%': 0,
     'v8_use_snapshot%': 0,
     'v8_trace_maps%': 0,
@@ -236,7 +237,7 @@
     'node_mksnapshot_exec': '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)node_mksnapshot<(EXECUTABLE_SUFFIX)',
     'mkcodecache_exec': '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)mkcodecache<(EXECUTABLE_SUFFIX)',
     'conditions': [
-      [ 'node_shared=="true"', {
+      [ 'node_shared=="true"', { # JAMLEE: 如果 node 编译为 shared
         'node_target_type%': 'shared_library',
         'conditions': [
           ['OS=="aix"', {
@@ -254,7 +255,7 @@
       }],
       [ 'OS=="win" and '
         'node_use_openssl=="true" and '
-        'node_shared_openssl=="false"', {
+        'node_shared_openssl=="false"', { # JAMLEE: win 且使用 openssl
         'use_openssl_def%': 1,
       }, {
         'use_openssl_def%': 0,
@@ -306,7 +307,8 @@
       'defines': [
         'NODE_WANT_INTERNALS=1',
       ],
-
+      
+      # JAMLEE: 包含 node.gypi。仅仅属于这个 target
       'includes': [
         'node.gypi'
       ],
@@ -336,8 +338,8 @@
       #   Ususaly safe. Disable for `dep`, enable for `src`
       'msvs_disabled_warnings!': [4244],
 
-      'conditions': [
-        [ 'node_intermediate_lib_type=="static_library" and '
+      'conditions': [ # JAMLEE: 什么都能装到这里，依据条件应用到当前 target
+        [ 'node_intermediate_lib_type=="static_library" and ' # JAMLEE: 如果是 aix 系统的话
             'node_shared=="true" and OS=="aix"', {
           # For AIX, shared lib is linked by static lib and .exp. In the
           # case here, the executable needs to link to shared lib.
@@ -347,7 +349,7 @@
         }, {
           'dependencies': [ '<(node_lib_target_name)' ],
         }],
-        [ 'node_intermediate_lib_type=="static_library" and node_shared=="false"', {
+        [ 'node_intermediate_lib_type=="static_library" and node_shared=="false"', {  # JAMLEE: 如果是 静态编译的话
           'xcode_settings': {
             'OTHER_LDFLAGS': [
               '-Wl,-force_load,<(PRODUCT_DIR)/<(STATIC_LIB_PREFIX)<(node_core_target_name)<(STATIC_LIB_SUFFIX)',
@@ -446,7 +448,7 @@
                 '<(SHARED_INTERMEDIATE_DIR)/node_code_cache.cc',
               ],
               'action': [
-                '<@(_inputs)',
+                '<@(_inputs)', # JAMLEE:<@() 引用的是 list 变量
                 '<@(_outputs)',
               ],
             },
@@ -460,7 +462,7 @@
           'dependencies': [
             'node_mksnapshot',
           ],
-          'actions': [
+          'actions': [ # JAMLEE: command line invocation used to produce outputs from inputs. https://chromium.googlesource.com/external/gyp/+/refs/heads/md-pages/docs/LanguageSpecification.md
             {
               'action_name': 'node_mksnapshot',
               'process_outputs_as_sources': 1,
@@ -471,7 +473,7 @@
                 '<(SHARED_INTERMEDIATE_DIR)/node_snapshot.cc',
               ],
               'action': [
-                '<@(_inputs)',
+                '<@(_inputs)', # JAMLEE: https://gyp.gsrc.io/docs/InputFormatReference.md#Variable-Expansions
                 '<@(_outputs)',
               ],
             },
@@ -483,7 +485,7 @@
         }],
       ],
     }, # node_core_target_name
-    {
+    { # JAMLEE: node 编译为静态或者动态库
       'target_name': '<(node_lib_target_name)',
       'type': '<(node_intermediate_lib_type)',
       'includes': [
@@ -672,7 +674,7 @@
         # javascript files to make for an even more pleasant IDE experience
         '<@(library_files)',
         # node.gyp is added by default, common.gypi is added for change detection
-        'common.gypi',
+        'common.gypi', # JAMLEE: 编译无关的文件也是ok的。 A list of source files that are used to build this target or which should otherwise show up in the IDE for this target. In practice, we expect this list to be a union of all files necessary to build the target on all platforms, as well as other related files that aren't actually used for building, like README files.
       ],
 
       'variables': {
@@ -714,7 +716,7 @@
         }, {
           'defines': [ 'HAVE_INSPECTOR=0' ]
         }],
-        [ 'OS=="win"', {
+        [ 'OS=="win"', { # JAMLEE: 忽略 win 平台
           'conditions': [
             [ 'node_intermediate_lib_type!="static_library"', {
               'sources': [
@@ -727,7 +729,7 @@
             'Psapi',
           ],
         }],
-        [ 'node_use_etw=="true"', {
+        [ 'node_use_etw=="true"', { # JAMLEE: ETW是Event Tracing for Windows的简称，它是Windows提供的原生的事件跟踪日志系统。由于采用内核（Kernel）层面的缓冲和日志记录机制，所以ETW提供了一种非常高效的事件跟踪日志解决方案。
           'defines': [ 'HAVE_ETW=1' ],
           'dependencies': [ 'node_etw' ],
           'include_dirs': [

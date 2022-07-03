@@ -12,7 +12,7 @@
         'force_load%': 'true',
         'current_type%': '<(_type)',
       },
-      'force_load%': '<(force_load)',
+      'force_load%': '<(force_load)', # 在变量范围内的variables中引用变量
       'conditions': [
         ['current_type=="static_library"', {
           'force_load': 'false',
@@ -22,7 +22,7 @@
         }]
       ],
     },
-    'force_load%': '<(force_load)',
+    'force_load%': '<(force_load)', # 在变量范围内的variables中引用变量
   },
 
   'conditions': [

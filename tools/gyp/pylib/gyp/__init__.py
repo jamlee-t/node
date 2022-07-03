@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/env python
 
 # Copyright (c) 2012 Google Inc. All rights reserved.
@@ -65,9 +67,19 @@ def Load(build_files, format, default_variables={},
   Returns the generator for the specified format and the
   data returned by loading the specified build files.
   """
+  print('JAMLEE: ' + __file__ + ': Load 函数所有参数 ' + ' ' + str(build_files)
+    + ' ' + str(format) + ' ' + str(default_variables) + ' ' + str(includes)
+    + ' ' + str(depth) + ' ' + str(check)
+    + ' ' + str(circular_check) + ' ' + str(duplicate_basename_check) 
+    )
+
+  # print('JAMLEE: ' + __file__ + ':' + str(params))
+
   if params is None:
     params = {}
 
+  # JAMLEE 为什么 make-linux 参数 
+  print('JAMLEE: ' + __file__ + ': ' + str(format))
   if '-' in format:
     format, params['flavor'] = format.split('-', 1)
 
@@ -285,6 +297,7 @@ class RegeneratableOptionParser(argparse.ArgumentParser):
     values._regeneration_metadata = self.__regeneratable_options
     return values, args
 
+# JAMLEE: gyp 命令行调用入口
 def gyp_main(args):
   my_name = os.path.basename(sys.argv[0])
   usage = 'usage: %(prog)s [options ...] [build_file ...]'
@@ -358,6 +371,7 @@ def gyp_main(args):
   options, build_files_arg = parser.parse_args(args)
   build_files = build_files_arg
 
+  # JAMLEE: 如果没有配置目录。尝试从环境变量，用户目录
   # Set up the configuration directory (defaults to ~/.gyp)
   if not options.config_dir:
     home = None
@@ -384,7 +398,9 @@ def gyp_main(args):
 
   if home_dot_gyp and not os.path.exists(home_dot_gyp):
     home_dot_gyp = None
-
+  # JAMLEE: 如果默认位置也没有的话，最终 home_dot_gyp 设置为 None
+  
+  # JAMLEE: node 传入了参数 -f make-linux。如果没有传入尝试从环境变量中读取
   if not options.formats:
     # If no format was given on the command line, then check the env variable.
     generate_formats = []
@@ -502,6 +518,7 @@ def gyp_main(args):
   if DEBUG_GENERAL in gyp.debug.keys():
     DebugOutput(DEBUG_GENERAL, "generator_flags: %s", generator_flags)
 
+  print('JAMLEE: ' + __file__ + ': format 参数 ' +' '.join(options.formats))
   # Generate all requested formats (use a set in case we got one format request
   # twice)
   for format in set(options.formats):
@@ -541,8 +558,9 @@ def gyp_main(args):
   # Done
   return 0
 
-
+# JAMLEE: gyp 执行真实入口
 def main(args):
+  print('JAMLEE: 入口 ' + __file__ + ': ' +' '.join(args))
   try:
     return gyp_main(args)
   except GypError as e:

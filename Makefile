@@ -1,3 +1,5 @@
+# configure.py 生成 config.mk。开始以为和 gyp 有关，这里发现 config.mk 仅仅给这个 makefile 用。
+# gyp 生成的 makefile 文件在 out/Makefile (gyp 的 --generator-output 和 -G 指定了输出目录的位置)
 -include config.mk
 
 BUILDTYPE ?= Release
@@ -71,6 +73,9 @@ available-node = \
 		exit 1; \
 	fi;
 
+#######################################################################################
+# JAMLEE: makefile 的编译入口
+#######################################################################################
 .PHONY: all
 # BUILDTYPE=Debug builds both release and debug builds. If you want to compile
 # just the debug build, run `make -C out BUILDTYPE=Debug` instead.
@@ -91,12 +96,14 @@ help: ## Print help for targets with comments.
 # to check for changes.
 .PHONY: $(NODE_EXE) $(NODE_G_EXE)
 
+# JAMLEE: 支持 make 或者 ninja。这里依赖了 out/Makefile，out/Makefile 依赖了多个 gyp 文件。
+# 所以 v8 能够被编译
 # The -r/-L check stops it recreating the link if it is already in place,
 # otherwise $(NODE_EXE) being a .PHONY target means it is always re-run.
 # Without the check there is a race condition between the link being deleted
 # and recreated which can break the addons build when running test-ci
 # See comments on the build-addons target for some more info
-ifeq ($(BUILD_WITH), make)
+ifeq ($(BUILD_WITH), make) # JAMLEE: make
 $(NODE_EXE): config.gypi out/Makefile
 	$(MAKE) -C out BUILDTYPE=Release V=$(V)
 	if [ ! -r $@ -o ! -L $@ ]; then ln -fs out/Release/$(NODE_EXE) $@; fi
@@ -105,7 +112,7 @@ $(NODE_G_EXE): config.gypi out/Makefile
 	$(MAKE) -C out BUILDTYPE=Debug V=$(V)
 	if [ ! -r $@ -o ! -L $@ ]; then ln -fs out/Debug/$(NODE_EXE) $@; fi
 else
-ifeq ($(BUILD_WITH), ninja)
+ifeq ($(BUILD_WITH), ninja) # JAMLEE: ninja
 ifeq ($(V),1)
 	NINJA_ARGS := $(NINJA_ARGS) -v
 endif

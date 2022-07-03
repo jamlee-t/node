@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python
 from __future__ import print_function
 import os
@@ -13,6 +14,9 @@ import gyp
 # to be written.
 output_dir = os.path.join(os.path.abspath(node_root), 'out')
 
+######################################################################################
+# JAMLEE: GYP 的运行入口
+######################################################################################
 def run_gyp(args):
   # GYP bug.
   # On msvs it will crash if it gets an absolute path.
@@ -50,7 +54,8 @@ def run_gyp(args):
   args.append('-Dlinux_use_bundled_binutils=0')
   args.append('-Dlinux_use_bundled_gold=0')
   args.append('-Dlinux_use_gold_flags=0')
-
+  
+  print('JAMLEE: ' + __file__ + ': ' +' '.join(args))
   rc = gyp.main(args)
   if rc != 0:
     print('Error running GYP')

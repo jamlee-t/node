@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# JAMLEE: The Python del keyword is used to delete objects.
+
 # Locate python2 interpreter and re-execute the script.  Note that the
 # mix of single and double quotes is intentional, as is the fact that
 # the ] goes on a new line.

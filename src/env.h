@@ -132,6 +132,7 @@ enum class FsStatsOffset {
 constexpr size_t kFsStatsBufferLength =
     static_cast<size_t>(FsStatsOffset::kFsStatsFieldsNumber) * 2;
 
+// JAMLEE: 定义 PER_ISOLATE 私有符号属性
 // PER_ISOLATE_* macros: We have a lot of per-isolate properties
 // and adding and maintaining their getters and setters by hand would be
 // difficult so let's make the preprocessor generate them for us.
@@ -155,6 +156,7 @@ constexpr size_t kFsStatsBufferLength =
   V(napi_wrapper, "node:napi:wrapper")                                        \
   V(sab_lifetimepartner_symbol, "node:sharedArrayBufferLifetimePartner")      \
 
+// JAMLEE: 定义 PER_ISOLATE 符号属性
 // Symbols are per-isolate primitives but Environment proxies them
 // for the sake of convenience.
 #define PER_ISOLATE_SYMBOL_PROPERTIES(V)                                      \
@@ -163,6 +165,7 @@ constexpr size_t kFsStatsBufferLength =
   V(oninit_symbol, "oninit")                                                  \
   V(owner_symbol, "owner")                                                    \
 
+// JAMLEE: 定义 PER_ISOLATE 字符串属性
 // Strings are per-isolate primitives but Environment proxies them
 // for the sake of convenience.  Strings should be ASCII-only.
 #define PER_ISOLATE_STRING_PROPERTIES(V)                                       \
@@ -377,6 +380,7 @@ constexpr size_t kFsStatsBufferLength =
   V(x_forwarded_string, "x-forwarded-for")                                     \
   V(zero_return_string, "ZERO_RETURN")
 
+// JAMLEE: 定义  ENVIRONMENT 强持久化模板
 #define ENVIRONMENT_STRONG_PERSISTENT_TEMPLATES(V)                             \
   V(as_callback_data_template, v8::FunctionTemplate)                           \
   V(async_wrap_ctor_template, v8::FunctionTemplate)                            \
@@ -405,7 +409,7 @@ constexpr size_t kFsStatsBufferLength =
   V(tty_constructor_template, v8::FunctionTemplate)                            \
   V(write_wrap_template, v8::ObjectTemplate)
 
-// JAMLEE: 这里 Environment::MemoryInfo 有用到
+// JAMLEE: 定义  ENVIRONMENT 强持久化值。这里 Environment::MemoryInfo 有用到
 #define ENVIRONMENT_STRONG_PERSISTENT_VALUES(V)                                \
   V(as_callback_data, v8::Object)                                              \
   V(async_hooks_after_function, v8::Function)                                  \
@@ -474,7 +478,9 @@ class IsolateData : public MemoryRetainer {
   void MemoryInfo(MemoryTracker* tracker) const override;
   std::vector<size_t> Serialize(v8::SnapshotCreator* creator);
 
+  // JAMLEE: nodejs 使用的唯一 loop
   inline uv_loop_t* event_loop() const;
+  // JAMLEE: v8 引擎使用的 platform
   inline MultiIsolatePlatform* platform() const;
   inline std::shared_ptr<PerIsolateOptions> options();
   inline void set_options(std::shared_ptr<PerIsolateOptions> options);
@@ -488,6 +494,10 @@ class IsolateData : public MemoryRetainer {
 #define VS(PropertyName, StringValue) V(v8::String, PropertyName)
 #define V(TypeName, PropertyName)                                             \
   inline v8::Local<TypeName> PropertyName(v8::Isolate* isolate) const;
+  // JAMLEE: 上面这行首先定义了 V。这里只是定义函数， StringValue 没有用到。那么 VP 就是: 
+  // VP(alpn_buffer_private_symbol, "node:alpnBuffer") => V(v8::Private, alpn_buffer_private_symbol) => inline v8::Local<v8::Private> alpn_buffer_private_symbol(v8::Isolate* isolate) const;
+  // VY(handle_onclose_symbol, "handle_onclose") => V(v8::Symbol, handle_onclose_symbol) => inline v8::Local<v8::Private> handle_onclose_symbol(v8::Isolate* isolate) const;
+  // VS(address_string, "address") => V(v8::String, address_string) => inline v8::Local<v8::String> address_string(v8::Isolate* isolate) const;
   PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(VP)
   PER_ISOLATE_SYMBOL_PROPERTIES(VY)
   PER_ISOLATE_STRING_PROPERTIES(VS)
@@ -505,6 +515,7 @@ class IsolateData : public MemoryRetainer {
 
  private:
   void DeserializeProperties(const std::vector<size_t>* indexes);
+  // JAMLEE: PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES，PER_ISOLATE_SYMBOL_PROPERTIES，PER_ISOLATE_STRING_PROPERTIES 是在这个函数中被定义。
   void CreateProperties();
 
 #define VP(PropertyName, StringValue) V(v8::Private, PropertyName)
@@ -512,6 +523,11 @@ class IsolateData : public MemoryRetainer {
 #define VS(PropertyName, StringValue) V(v8::String, PropertyName)
 #define V(TypeName, PropertyName)                                             \
   v8::Eternal<TypeName> PropertyName ## _;
+
+  // JAMLEE: 这里定义了类变量。
+  // VP(alpn_buffer_private_symbol, "node:alpnBuffer") => V(v8::Private, alpn_buffer_private_symbol) => v8::Eternal<v8::Private> alpn_buffer_private_symbol_;
+  // VY(handle_onclose_symbol, "handle_onclose") => V(v8::Symbol, handle_onclose_symbol) => v8::Eternal<v8::Symbol> handle_onclose_symbol_;
+  // VS(address_string, "address") => V(v8::String, address_string) =>  v8::Eternal<v8::String> address_string_;
   PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(VP)
   PER_ISOLATE_SYMBOL_PROPERTIES(VY)
   PER_ISOLATE_STRING_PROPERTIES(VS)
@@ -1189,6 +1205,11 @@ class Environment : public MemoryRetainer {
 #define VS(PropertyName, StringValue) V(v8::String, PropertyName)
 #define V(TypeName, PropertyName)                                             \
   inline v8::Local<TypeName> PropertyName() const;
+
+  // JAMLEE: 上面这行首先定义了 V。这里只是定义函数， StringValue 没有用到。那么 VP 就是: 
+  // VP(alpn_buffer_private_symbol, "node:alpnBuffer") => V(v8::Private, alpn_buffer_private_symbol) => inline v8::Local<v8::Private> alpn_buffer_private_symbol() const;
+  // VY(handle_onclose_symbol, "handle_onclose") => V(v8::Symbol, handle_onclose_symbol) => inline v8::Local<v8::Private> handle_onclose_symbol() const;
+  // VS(address_string, "address") => V(v8::String, address_string) => inline v8::Local<v8::String> address_string() const;
   PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(VP)
   PER_ISOLATE_SYMBOL_PROPERTIES(VY)
   PER_ISOLATE_STRING_PROPERTIES(VS)

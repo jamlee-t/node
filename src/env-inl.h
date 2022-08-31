@@ -1189,6 +1189,7 @@ void AsyncRequest::set_stopped(bool flag) {
     /* Strings are immutable so casting away const-ness here is okay. */      \
     return const_cast<IsolateData*>(this)->PropertyName ## _.Get(isolate);    \
   }
+  // JAMLEE: 这里定义函数实现，很多函数
   PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(VP)
   PER_ISOLATE_SYMBOL_PROPERTIES(VY)
   PER_ISOLATE_STRING_PROPERTIES(VS)
@@ -1204,6 +1205,7 @@ void AsyncRequest::set_stopped(bool flag) {
   inline v8::Local<TypeName> Environment::PropertyName() const {              \
     return isolate_data()->PropertyName(isolate());                           \
   }
+  // JAMLEE: 这里定义函数实现，很多函数
   PER_ISOLATE_PRIVATE_SYMBOL_PROPERTIES(VP)
   PER_ISOLATE_SYMBOL_PROPERTIES(VY)
   PER_ISOLATE_STRING_PROPERTIES(VS)

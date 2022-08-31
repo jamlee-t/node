@@ -115,7 +115,7 @@ void IsolateData::CreateProperties() {
   // decoding step.
 
   HandleScope handle_scope(isolate_);
-
+  // JAMLEE: 定义属性的值。提供给函数获取值。
 #define V(PropertyName, StringValue)                                           \
   PropertyName##_.Set(                                                         \
       isolate_,                                                                \
